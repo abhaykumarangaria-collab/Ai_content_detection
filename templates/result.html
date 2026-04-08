@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Detection Result</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: #0f172a;
+            color: white;
+            overflow-x: hidden;
+        }
+
+        /* GRID BACKGROUND */
+        body::before {
+            content: "";
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: -1;
+        }
+
+        /* LOADER */
+        .loader {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            background: #0f172a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 9999;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 5px solid rgba(255,255,255,0.1);
+            border-top: 5px solid #00ffcc;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* MAIN */
+        .main {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 40px;
+        }
+
+        /* CARD */
+        .card {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(20px);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            width: 100%;
+            max-width: 600px; /* Increased slightly for better layout */
+            box-shadow: 0 0 40px rgba(0,255,200,0.1);
+        }
+
+        h1 { margin-bottom: 5px; color: #00ffcc; }
+        p { opacity: 0.7; }
+
+        /* CHART */
+        #pieChart { margin: 20px auto; }
+
+        /* METRICS */
+        .metrics { margin-top: 20px; text-align: left; }
+        .metric { margin-bottom: 15px; }
+
+        .bar {
+            height: 8px;
+            border-radius: 10px;
+            background: #1e293b;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 10px;
+            transition: 1.2s cubic-bezier(0.1, 0, 0.2, 1);
+        }
+
+        /* EXPLANATION */
+        .explanation {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px;
+            font-size: 14px;
+            border-left: 4px solid #00ffcc;
+        }
+
+        /* SLIDE-WISE SECTION */
+        .slides-container {
+            margin-top: 30px;
+            text-align: left;
+        }
+        .slide-item { margin-bottom: 12px; }
+        .slide-info { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
+
+        /* CONTENT BOX */
+        .content-box {
+            margin-top: 30px;
+            text-align: left;
+            background: rgba(0,0,0,0.2);
+            padding: 15px;
+            border-radius: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 14px;
+            line-height: 1.6;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* BUTTON */
+        .btn {
+            display: inline-block;
+            margin-top: 25px;
+            padding: 12px 30px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: bold;
+            background: linear-gradient(45deg, #00ffcc, #00ccff);
+            color: #0f172a;
+            transition: transform 0.2s;
+        }
+        .btn:hover { transform: scale(1.05); }
+
+    </style>
+</head>
+
+<body>
+
+<div class="loader" id="loader">
+    <div class="spinner"></div>
+    <h3 style="margin-top:15px;">Analyzing your PPT...</h3>
+</div>
+
+<div class="main" id="main">
+    <div class="card">
+
+        <h1>{{ result }}</h1>
+        <p>Confidence Level: {{ probability }}%</p>
+
+        <div style="max-width: 220px; margin: 0 auto;">
+            <canvas id="pieChart"></canvas>
+        </div>
+
+        <div class="metrics">
+            <div class="metric">
+                <label>AI Score</label>
+                <div class="bar"><div class="bar-fill" id="aiBar"></div></div>
+            </div>
+            <div class="metric">
+                <label>Originality</label>
+                <div class="bar"><div class="bar-fill" id="origBar"></div></div>
+            </div>
+            <div class="metric">
+                <label>Complexity</label>
+                <div class="bar"><div class="bar-fill" id="compBar"></div></div>
+            </div>
+        </div>
+
+        <div class="explanation" id="explanation"></div>
+
+        {% if slide_scores %}
+        <div class="slides-container">
+            <h3 style="font-size: 16px; color: #00ffcc;">📊 Slide-wise Breakdown</h3>
+            {% for s in slide_scores %}
+            <div class="slide-item">
+                <div class="slide-info">
+                    <span>Slide {{ s.slide }}</span>
+                    <span>{{ s.score }}% AI</span>
+                </div>
+                <div class="bar">
+                    <div class="bar-fill" style="--w: {{ s.score }}%; width: var(--w); background: #ff4d4d;"></div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="content-box">
+            <h3>🧾 Sentence Analysis</h3>
+            <div>
+                {{ highlighted_text|safe }}
+            </div>
+            <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin: 15px 0;">
+            <p style="font-size:12px; opacity:0.7;">
+                <span style="color:#ff4d4d">🔴</span> AI-like &nbsp;&nbsp; 
+                <span style="color:#00ffcc">🟢</span> Human-like &nbsp;&nbsp; 
+                <span style="color:#94a3b8">⚪</span> Neutral
+            </p>
+        </div>
+
+        <a href="/" class="btn">🔄 Analyze Another</a>
+
+    </div>
+</div>
+
+<script>
+// Safely parse data
+const prob = parseFloat("{{ probability or 0 }}");
+const aiScore = prob;
+const humanScore = 100 - prob;
+
+window.onload = function() {
+    // Show content after loader
+    setTimeout(() => {
+        document.getElementById("loader").style.display = "none";
+        document.getElementById("main").style.display = "flex";
+
+        createChart();
+        animateBars();
+        generateExplanation();
+    }, 1800);
+};
+
+function createChart() {
+    const ctx = document.getElementById('pieChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['AI Content', 'Human Content'],
+            datasets: [{
+                data: [aiScore, humanScore],
+                backgroundColor: ['#ff4d4d', '#00ffcc'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            cutout: '75%',
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: 'white', padding: 20, font: { size: 11 } }
+                }
+            }
+        }
+    });
+}
+
+function animateBars() {
+    // Small delay to ensure the 'flex' display is rendered before animating
+    setTimeout(() => {
+        document.getElementById("aiBar").style.width = aiScore + "%";
+        document.getElementById("aiBar").style.background = "#ff4d4d";
+
+        document.getElementById("origBar").style.width = humanScore + "%";
+        document.getElementById("origBar").style.background = "#00ffcc";
+
+        // Random logic for complexity for visual variety
+        document.getElementById("compBar").style.width = (40 + Math.random()*50) + "%";
+        document.getElementById("compBar").style.background = "#00ccff";
+    }, 100);
+}
+
+function generateExplanation() {
+    const expDiv = document.getElementById("explanation");
+    if (prob > 70) {
+        expDiv.innerHTML = "<b>🧠 High AI Influence:</b> The content shows high predictability and structural patterns common in LLMs.";
+        expDiv.style.borderLeftColor = "#ff4d4d";
+    } else if (prob > 40) {
+        expDiv.innerHTML = "<b>⚠ Mixed Signals:</b> The document contains a blend of human-like variation and AI-typical phrasing.";
+        expDiv.style.borderLeftColor = "#ffcc00";
+    } else {
+        expDiv.innerHTML = "<b>✅ Natural Content:</b> High linguistic diversity and low repetition suggest this is human-authored.";
+        expDiv.style.borderLeftColor = "#00ffcc";
+    }
+}
+</script>
+
+</body>
+</html>

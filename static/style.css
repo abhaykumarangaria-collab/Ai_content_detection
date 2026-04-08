@@ -1,0 +1,103 @@
+/* RESET */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+/* BODY */
+body {
+    height: 100vh;
+    background: linear-gradient(135deg, #1e3c72, #2a5298);
+    display: flex;
+    flex-direction: column;
+}
+
+/* NAVBAR */
+.navbar {
+    padding: 15px 30px;
+    color: white;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+/* MAIN CENTER */
+.main {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* CARD */
+.card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(15px);
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    width: 400px;
+    color: white;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+    animation: fadeIn 1s ease;
+}
+
+/* HEADINGS */
+.card h1 {
+    margin-bottom: 10px;
+}
+
+.card p {
+    margin-bottom: 25px;
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+/* UPLOAD BOX */
+.upload-box {
+    border: 2px dashed rgba(255,255,255,0.5);
+    padding: 30px;
+    border-radius: 10px;
+    cursor: pointer;
+    display: block;
+    margin-bottom: 20px;
+    transition: 0.3s;
+}
+
+.upload-box:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+.upload-box input {
+    display: none;
+}
+
+/* BUTTON */
+.scan-btn {
+    background: #00c6ff;
+    border: none;
+    padding: 12px 25px;
+    color: white;
+    font-size: 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.scan-btn:hover {
+    background: #0072ff;
+    transform: scale(1.05);
+}
+
+/* ANIMATION */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

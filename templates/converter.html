@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Converter Tool</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            color: white;
+            background: #0f172a;
+            overflow-x: hidden;
+        }
+
+        /* GRID BACKGROUND */
+        body::before {
+            content: "";
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: -1;
+        }
+
+        /* NAVBAR */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 50px;
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            position: sticky;
+            top: 0;
+        }
+
+        .nav-links a {
+            margin-left: 25px;
+            text-decoration: none;
+            color: white;
+            position: relative;
+        }
+
+        .nav-links a::after {
+            content: "";
+            position: absolute;
+            width: 0%;
+            height: 2px;
+            bottom: -5px;
+            left: 0;
+            background: #00ffcc;
+            transition: 0.3s;
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .nav-links a.active {
+            color: #00ffcc;
+        }
+
+        .nav-links a.active::after {
+            width: 100%;
+        }
+
+        /* MAIN */
+        .main {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 90vh;
+        }
+
+        /* CARD */
+        .card {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(20px);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            width: 420px;
+            box-shadow: 0 0 40px rgba(0,255,200,0.1);
+            animation: startup 1s ease;
+        }
+
+        @keyframes startup {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        h1 {
+            margin-bottom: 10px;
+        }
+
+        p {
+            opacity: 0.7;
+        }
+
+        /* SELECT */
+        select {
+            width: 100%;
+            padding: 10px;
+            margin: 15px 0;
+            border-radius: 10px;
+            border: none;
+            background: #1e293b;
+            color: white;
+        }
+
+        /* UPLOAD */
+        .upload-box {
+            border: 2px dashed rgba(255,255,255,0.3);
+            padding: 30px;
+            margin: 20px 0;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .upload-box.dragover {
+            border-color: #00ffcc;
+            background: rgba(0,255,200,0.1);
+            transform: scale(1.02);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        /* PREVIEW */
+        #filePreview {
+            margin-top: 10px;
+            display: none;
+        }
+
+        #fileName {
+            color: #00ffcc;
+            font-weight: bold;
+        }
+
+        #fileSize {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+
+        #removeFile {
+            margin-top: 8px;
+            padding: 5px 10px;
+            border: none;
+            background: red;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        /* BUTTON */
+        .convert-btn {
+            padding: 12px 30px;
+            border-radius: 30px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            background: linear-gradient(45deg, #00ffcc, #00ccff);
+            color: black;
+        }
+
+        .convert-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px #00ffcc;
+        }
+
+        /* RESULT */
+        .result {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .download-btn {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 10px 20px;
+            background: #00ffcc;
+            color: black;
+            border-radius: 10px;
+            text-decoration: none;
+        }
+
+    </style>
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+<div class="navbar">
+    <h2>🔄 Converter</h2>
+    <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/converter" class="active">Converter</a>
+        <a href="/#about">About</a>
+        <a href="/#contact">Contact</a>
+    </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+    <div class="card">
+
+        <h1>File Converter</h1>
+        <p>Select conversion type</p>
+
+        <select id="converterType">
+            <option value="ppt-text">PPT ➜ Text</option>
+            <option value="ppt-pdf">PPT ➜ PDF</option>
+            <option value="text-ppt">Text ➜ PPT</option>
+        </select>
+
+        <div id="dropArea" class="upload-box">
+            <input type="file" id="fileInput">
+
+            <div id="uploadText">
+                📂 Drag & Drop File <br> or <b>Click to Upload</b>
+            </div>
+
+            <div id="filePreview">
+                <p id="fileName"></p>
+                <p id="fileSize"></p>
+                <button type="button" id="removeFile">❌ Remove</button>
+            </div>
+        </div>
+
+        <button class="convert-btn" id="convertBtn">⚡ Convert</button>
+
+        <div class="result" id="resultBox">
+            <p>✅ Conversion Complete</p>
+            <a href="#" class="download-btn">⬇ Download File</a>
+        </div>
+
+    </div>
+</div>
+
+<script>
+const dropArea = document.getElementById("dropArea");
+const fileInput = document.getElementById("fileInput");
+const filePreview = document.getElementById("filePreview");
+const fileName = document.getElementById("fileName");
+const fileSize = document.getElementById("fileSize");
+const removeBtn = document.getElementById("removeFile");
+const convertBtn = document.getElementById("convertBtn");
+const resultBox = document.getElementById("resultBox");
+
+dropArea.addEventListener("click", () => fileInput.click());
+
+["dragenter","dragover"].forEach(event => {
+    dropArea.addEventListener(event, e => {
+        e.preventDefault();
+        dropArea.classList.add("dragover");
+    });
+});
+
+["dragleave","drop"].forEach(event => {
+    dropArea.addEventListener(event, e => {
+        e.preventDefault();
+        dropArea.classList.remove("dragover");
+    });
+});
+
+dropArea.addEventListener("drop", e => {
+    handleFile(e.dataTransfer.files[0]);
+});
+
+fileInput.addEventListener("change", () => {
+    handleFile(fileInput.files[0]);
+});
+
+function handleFile(file) {
+    if (!file) return;
+
+    filePreview.style.display = "block";
+    fileName.innerText = "📄 " + file.name;
+    fileSize.innerText = (file.size/1024).toFixed(2) + " KB";
+}
+
+removeBtn.addEventListener("click", () => {
+    fileInput.value = "";
+    filePreview.style.display = "none";
+});
+
+convertBtn.addEventListener("click", () => {
+    if (!fileInput.files.length) {
+        alert("Upload file first!");
+        return;
+    }
+
+    resultBox.style.display = "block";
+});
+</script>
+
+</body>
+</html>

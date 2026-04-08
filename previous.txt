@@ -1,0 +1,211 @@
+import pandas as pd
+import re
+import nltk
+import joblib
+
+from nltk.corpus import stopwords
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics import accuracy_score, classification_report
+from xgboost import XGBClassifier
+
+# ------------------------
+# DOWNLOAD
+# ------------------------
+nltk.download('stopwords')
+
+# ------------------------
+# LOAD DATA (SAFE LIMIT)
+# ------------------------
+data = pd.read_csv("AI_Human.csv", nrows=30000)
+
+print("Columns:", data.columns)
+
+# FIX COLUMN NAMES IF NEEDED
+data.rename(columns={'generated': 'label'}, inplace=True)
+
+# REMOVE NULLS
+data.dropna(inplace=True)
+
+# ------------------------
+# PREPROCESS
+# ------------------------
+stop_words = set(stopwords.words('english'))
+
+def preprocess(text):
+    text = str(text).lower()
+    text = re.sub(r'[^a-zA-Z\s]', '', text)
+    words = text.split()
+    words = [w for w in words if w not in stop_words]
+    return " ".join(words)
+
+data['text'] = data['text'].apply(preprocess)
+
+X = data['text']
+y = data['label']
+
+# ------------------------
+# SPLIT
+# ------------------------
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# ------------------------
+# TF-IDF
+# ------------------------
+vectorizer = TfidfVectorizer(max_features=5000)
+
+X_train_vec = vectorizer.fit_transform(X_train)
+X_test_vec = vectorizer.transform(X_test)
+
+# ------------------------
+# MODEL (SAFE XGBOOST)
+# ------------------------
+model = XGBClassifier(
+    n_estimators=50,
+    max_depth=4,
+    learning_rate=0.1,
+    use_label_encoder=False,
+    eval_metric='logloss'
+)
+
+model.fit(X_train_vec, y_train)
+
+# ------------------------
+# EVALUATE
+# ------------------------
+y_pred = model.predict(X_test_vec)
+
+print("Accuracy:", accuracy_score(y_test, y_pred))
+print(classification_report(y_test, y_pred))
+
+# ------------------------
+# SAVE
+# ------------------------
+joblib.dump(model, "xgb_ai_model.pkl")
+joblib.dump(vectorizer, "vectorizer.pkl")
+
+print("✅ Training completed successfully!")
+
+
+
+
+
+
+
+from flask import Flask, request, render_template
+from pptx import Presentation
+import joblib
+import re
+import nltk
+from nltk.corpus import stopwords
+from werkzeug.utils import secure_filename
+import os
+
+print("🚀 Starting Flask App...")
+
+app = Flask(__name__)
+UPLOAD_FOLDER = "uploads"
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+nltk.download("stopwords")
+
+# -------------------------
+# LOAD MODEL SAFELY
+# -------------------------
+try:
+    model = joblib.load("xgb_ai_model.pkl")
+    vectorizer = joblib.load("vectorizer.pkl")
+    print("✅ Model loaded successfully")
+except Exception as e:
+    print("❌ Model loading error:", e)
+    exit()
+
+stop_words = set(stopwords.words("english"))
+
+# -------------------------
+# PREPROCESS
+# -------------------------
+def preprocess(text):
+    text = str(text).lower()
+    text = re.sub(r"[^a-zA-Z\s]", "", text)
+    words = text.split()
+    words = [w for w in words if w not in stop_words]
+    return " ".join(words)
+
+# -------------------------
+# EXTRACT TEXT
+# -------------------------
+def extract_text_from_ppt(file_path):
+    try:
+        presentation = Presentation(file_path)
+        text = ""
+
+        for slide in presentation.slides:
+            for shape in slide.shapes:
+                if hasattr(shape, "text") and shape.text:
+                    text += shape.text + " "
+
+        return text.strip()
+    except Exception as e:
+        return ""
+
+# -------------------------
+# HOME
+# -------------------------
+@app.route("/")
+def home():
+    return render_template("index.html")
+
+# -------------------------
+# PREDICT
+# -------------------------
+@app.route("/predict_ppt", methods=["POST"])
+def predict_ppt():
+
+    if "file" not in request.files:
+        return "❌ No file uploaded!"
+
+    file = request.files["file"]
+
+    if file.filename == "":
+        return "❌ No selected file!"
+
+    if not file.filename.endswith(".pptx"):
+        return "❌ Only .pptx files allowed!"
+
+    filename = secure_filename(file.filename)
+    path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+    file.save(path)
+
+    try:
+        text = extract_text_from_ppt(path)
+
+        if text == "":
+            return "❌ Could not read PPT!"
+
+        processed = preprocess(text)
+
+        vec = vectorizer.transform([processed]).toarray()
+
+        pred = model.predict(vec)[0]
+        prob = model.predict_proba(vec)[0][1]
+
+        result = "AI Generated PPT" if pred == 1 else "Human Written PPT"
+        probability = round(prob * 100, 2)
+
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
+
+    finally:
+        if os.path.exists(path):
+            os.remove(path)
+
+    return render_template("result.html", result=result, probability=probability)
+
+# -------------------------
+if __name__ == "__main__":
+    app.run(debug=True)
