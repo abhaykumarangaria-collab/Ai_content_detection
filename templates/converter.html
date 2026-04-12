@@ -174,11 +174,19 @@
             cursor: pointer;
             background: linear-gradient(45deg, #00ffcc, #00ccff);
             color: black;
+            width: 100%;
         }
 
         .convert-btn:hover {
             transform: scale(1.05);
             box-shadow: 0 0 20px #00ffcc;
+        }
+
+        .convert-btn:disabled {
+            background: gray;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
 
         /* RESULT */
@@ -195,6 +203,7 @@
             color: black;
             border-radius: 10px;
             text-decoration: none;
+            font-weight: bold;
         }
 
     </style>
@@ -202,7 +211,6 @@
 
 <body>
 
-<!-- NAVBAR -->
 <div class="navbar">
     <h2>🔄 Converter</h2>
     <div class="nav-links">
@@ -213,7 +221,6 @@
     </div>
 </div>
 
-<!-- MAIN -->
 <div class="main">
     <div class="card">
 
@@ -222,12 +229,12 @@
 
         <select id="converterType">
             <option value="ppt-text">PPT ➜ Text</option>
-            <option value="ppt-pdf">PPT ➜ PDF</option>
-            <option value="text-ppt">Text ➜ PPT</option>
+            <option value="ppt-pdf" disabled>PPT ➜ PDF (Coming Soon)</option>
+            <option value="text-ppt" disabled>Text ➜ PPT (Coming Soon)</option>
         </select>
 
         <div id="dropArea" class="upload-box">
-            <input type="file" id="fileInput">
+            <input type="file" id="fileInput" accept=".pptx">
 
             <div id="uploadText">
                 📂 Drag & Drop File <br> or <b>Click to Upload</b>
@@ -243,8 +250,15 @@
         <button class="convert-btn" id="convertBtn">⚡ Convert</button>
 
         <div class="result" id="resultBox">
-            <p>✅ Conversion Complete</p>
-            <a href="#" class="download-btn">⬇ Download File</a>
+            <p style="color: #00ffcc; font-weight: bold;">✅ Conversion Complete</p>
+            
+            <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin: 15px 0; text-align: left;">
+                <h3 style="margin-top: 0; color: white; font-size: 16px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 5px;">AI Content Scan</h3>
+                <p style="margin: 5px 0;">🤖 AI Generated: <strong id="aiScore" style="color:#ff4d4d;">--%</strong></p>
+                <p style="margin: 5px 0;">✍️ Human Written: <strong id="humanScore" style="color:#00ffcc;">--%</strong></p>
+            </div>
+
+            <a href="#" class="download-btn" id="downloadBtn">⬇ Download Text File</a>
         </div>
 
     </div>
@@ -290,20 +304,71 @@ function handleFile(file) {
     filePreview.style.display = "block";
     fileName.innerText = "📄 " + file.name;
     fileSize.innerText = (file.size/1024).toFixed(2) + " KB";
+    document.getElementById("uploadText").style.display = "none";
 }
 
-removeBtn.addEventListener("click", () => {
+removeBtn.addEventListener("click", (e) => {
+    e.stopPropagation(); // Prevents the upload window from opening when clicking remove
     fileInput.value = "";
     filePreview.style.display = "none";
+    document.getElementById("uploadText").style.display = "block";
+    resultBox.style.display = "none";
 });
 
-convertBtn.addEventListener("click", () => {
+// NEW: Backend Communication Logic
+convertBtn.addEventListener("click", async () => {
     if (!fileInput.files.length) {
         alert("Upload file first!");
         return;
     }
 
-    resultBox.style.display = "block";
+    const file = fileInput.files[0];
+    const convertType = document.getElementById("converterType").value;
+    const downloadBtn = document.getElementById("downloadBtn");
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("type", convertType);
+
+    // Change button to loading state
+    convertBtn.innerText = "⏳ Processing & Scanning...";
+    convertBtn.disabled = true;
+    resultBox.style.display = "none";
+
+    try {
+        const response = await fetch("/api/convert", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.error) throw new Error(data.error);
+
+        // Update AI Scores in UI
+        document.getElementById("aiScore").innerText = data.ai_probability + "%";
+        document.getElementById("humanScore").innerText = data.human_probability + "%";
+
+        // Create the downloadable Text File
+        const blob = new Blob([data.extracted_text], { type: "text/plain" });
+        const downloadUrl = window.URL.createObjectURL(blob);
+        
+        downloadBtn.href = downloadUrl;
+        
+        // Dynamically name the file (e.g., presentation.pptx -> presentation_converted.txt)
+        const originalName = file.name.replace(/\.[^/.]+$/, ""); 
+        downloadBtn.download = originalName + "_converted.txt";
+
+        // Show Results
+        resultBox.style.display = "block";
+
+    } catch (error) {
+        alert("Error: " + error.message);
+    } finally {
+        // Reset button
+        convertBtn.innerText = "⚡ Convert";
+        convertBtn.disabled = false;
+    }
 });
 </script>
 

@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, jsonify
 from pptx import Presentation
 import joblib
 import re
@@ -9,16 +9,18 @@ from nltk.corpus import stopwords
 from nltk.tokenize import sent_tokenize
 from werkzeug.utils import secure_filename
 
+# 1. INITIALIZE APP
 app = Flask(__name__)
 UPLOAD_FOLDER = "uploads"
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+# 2. LOAD NLTK DATA
 nltk.download("stopwords")
 nltk.download("punkt")
 stop_words = set(stopwords.words("english"))
 
-# LOAD MODEL & VECTORIZER
+# 3. LOAD MODEL & VECTORIZER
 try:
     model = joblib.load("xgb_ai_model.pkl")
     vectorizer = joblib.load("vectorizer.pkl")
@@ -27,6 +29,7 @@ except Exception as e:
     print(f"❌ Critical Error: {e}")
     exit()
 
+# 4. HELPER FUNCTIONS
 def preprocess(text):
     text = str(text).lower()
     text = re.sub(r"[^a-zA-Z\s]", "", text)
@@ -56,7 +59,7 @@ def highlight_ai_sentences(text):
         original = s.strip()
         word_count = len(original.split())
         
-        # 1. Skip tiny phrases (Mark as Neutral)
+        # Skip tiny phrases
         if word_count < 6:
             highlighted.append(f"<p style='color:#94a3b8; margin: 8px 0;'>⚪ {original}</p>")
             continue
@@ -64,13 +67,12 @@ def highlight_ai_sentences(text):
         clean = preprocess(original)
         vec = vectorizer.transform([clean])
         
-        # 2. Check if words are recognized
         if vec.nnz == 0:
             prob = 0.0
         else:
             prob = float(model.predict(xgb.DMatrix(vec))[0])
             
-        # 3. The 67% Trap (Default guess prevention)
+        # The 67% Trap
         if 0.66 < prob < 0.68:
             prob = 0.0
         
@@ -82,9 +84,51 @@ def highlight_ai_sentences(text):
         
     return "".join(highlighted)
 
-@app.route("/")
-def home(): return render_template("index.html")
+# --- ROUTES ---
 
+@app.route("/")
+def home(): 
+    return render_template("index.html")
+
+@app.route("/converter")
+def converter(): 
+    return render_template("converter.html")
+
+# ✅ NEW MERGED ROUTE: Converter & AI Detection API
+@app.route("/api/convert", methods=["POST"])
+def api_convert():
+    file = request.files.get("file")
+    conversion_type = request.form.get("type")
+
+    if not file or file.filename == "": 
+        return jsonify({"error": "No file selected."}), 400
+    
+    path = os.path.join(app.config["UPLOAD_FOLDER"], secure_filename(file.filename))
+    file.save(path)
+    
+    try:
+        if conversion_type == "ppt-text":
+            text, slide_data = extract_text_from_ppt(path)
+            
+            clean_full = preprocess(text)
+            vec_full = vectorizer.transform([clean_full])
+            prob = 0.0 if vec_full.nnz == 0 else float(model.predict(xgb.DMatrix(vec_full))[0])
+            
+            return jsonify({
+                "status": "success",
+                "ai_probability": round(prob * 100, 2),
+                "human_probability": round((1 - prob) * 100, 2),
+                "extracted_text": text
+            })
+        else:
+            return jsonify({"error": "That conversion type is not supported yet."}), 501
+            
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if os.path.exists(path): os.remove(path)
+
+# ✅ EXISTING PREDICTION ROUTE
 @app.route("/predict_ppt", methods=["POST"])
 def predict_ppt():
     file = request.files.get("file")
@@ -96,21 +140,18 @@ def predict_ppt():
     try:
         text, slide_data = extract_text_from_ppt(path)
         
-        # OVERALL SCORE
         clean_full = preprocess(text)
         vec_full = vectorizer.transform([clean_full])
         prob = 0.0 if vec_full.nnz == 0 else float(model.predict(xgb.DMatrix(vec_full))[0])
         
-        # SLIDE-WISE SCORES
         slide_scores = []
         for s in slide_data:
             clean_s = preprocess(s['text'])
             s_vec = vectorizer.transform([clean_s])
             
-            # Aggregate analysis: Needs 5+ words to be valid
             if s_vec.nnz > 0 and len(s['text'].split()) > 5:
                 s_prob = float(model.predict(xgb.DMatrix(s_vec))[0])
-                if 0.66 < s_prob < 0.68: s_prob = 0.0 # Trap
+                if 0.66 < s_prob < 0.68: s_prob = 0.0 
             else:
                 s_prob = 0.0 
                 
@@ -124,4 +165,5 @@ def predict_ppt():
     finally:
         if os.path.exists(path): os.remove(path)
 
-if __name__ == "__main__": app.run(debug=True)
+if __name__ == "__main__": 
+    app.run(debug=True)
