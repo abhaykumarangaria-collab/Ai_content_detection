@@ -74,17 +74,8 @@
             transition: 0.3s;
         }
 
-        .nav-links a:hover::after {
-            width: 100%;
-        }
-
-        .nav-links a.active {
-            color: #00ffcc;
-        }
-
-        .nav-links a.active::after {
-            width: 100%;
-        }
+        .nav-links a:hover::after, .nav-links a.active::after { width: 100%; }
+        .nav-links a.active { color: #00ffcc; }
 
         /* VIEW CONTAINER */
         .view {
@@ -95,21 +86,11 @@
             animation: startup 0.5s ease;
         }
 
-        .view.active {
-            display: flex;
-        }
+        .view.active { display: flex; }
+        #homeView, #converterView { justify-content: center; align-items: center; }
+        #dashboardView { flex-direction: column; align-items: center; }
 
-        #homeView {
-            justify-content: center;
-            align-items: center;
-        }
-
-        #dashboardView {
-            flex-direction: column;
-            align-items: center;
-        }
-
-        /* CARD (Home) */
+        /* CARD (Home & Converter) */
         .card {
             background: rgba(255,255,255,0.05);
             backdrop-filter: blur(20px);
@@ -125,14 +106,8 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        h1, h2, h3 {
-            margin-top: 0;
-            margin-bottom: 10px;
-        }
-
-        p {
-            opacity: 0.7;
-        }
+        h1, h2, h3 { margin-top: 0; margin-bottom: 10px; }
+        p { opacity: 0.7; }
 
         /* UPLOAD BOX */
         .upload-box {
@@ -153,10 +128,10 @@
         input[type="file"] { display: none; }
 
         /* PREVIEW */
-        #filePreview { margin-top: 10px; display: none; }
-        #fileName { font-weight: bold; color: #00ffcc; }
-        #fileSize { font-size: 12px; opacity: 0.7; }
-        #removeFile {
+        .file-preview { margin-top: 10px; display: none; }
+        .file-name { font-weight: bold; color: #00ffcc; }
+        .file-size { font-size: 12px; opacity: 0.7; }
+        .remove-file {
             margin-top: 8px;
             padding: 5px 10px;
             border: none;
@@ -177,12 +152,10 @@
             color: black;
             position: relative;
             overflow: hidden;
+            width: 100%;
         }
 
-        .scan-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+        .scan-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
         .scan-btn::before {
             content: "";
@@ -196,9 +169,7 @@
             opacity: 0;
         }
 
-        .scan-btn:hover:not(:disabled)::before {
-            animation: shine 1s forwards;
-        }
+        .scan-btn:hover:not(:disabled)::before { animation: shine 1s forwards; }
 
         @keyframes shine {
             0% { left: -50%; opacity: 0; }
@@ -211,13 +182,26 @@
             box-shadow: 0 0 20px #00ffcc;
         }
 
-        /* --- DASHBOARD STYLES --- */
-        .dashboard-header {
-            width: 100%;
-            max-width: 1200px;
-            margin-bottom: 30px;
+        /* FORMAT SELECTOR FOR CONVERTER */
+        .format-selector {
+            margin: 15px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
+        .format-selector select {
+            padding: 8px;
+            border-radius: 5px;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            border: 1px solid #00ffcc;
+            outline: none;
+            width: 60%;
+        }
+
+        /* --- DASHBOARD STYLES --- */
+        .dashboard-header { width: 100%; max-width: 1200px; margin-bottom: 30px; }
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -263,17 +247,11 @@
             position: absolute;
             width: 90px;
             height: 90px;
-            background: #141e33; /* Matches slightly lighter than bg */
+            background: #141e33; 
             border-radius: 50%;
         }
 
-        .donut-value {
-            position: relative;
-            font-size: 24px;
-            font-weight: bold;
-            color: white;
-            z-index: 1;
-        }
+        .donut-value { position: relative; font-size: 24px; font-weight: bold; color: white; z-index: 1; }
 
         /* Bar Chart Mockup */
         .bar-chart {
@@ -309,13 +287,7 @@
         }
 
         /* Stats List Mockup */
-        .stat-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px dashed rgba(255,255,255,0.1);
-            font-size: 14px;
-        }
+        .stat-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed rgba(255,255,255,0.1); font-size: 14px; }
         .stat-row:last-child { border-bottom: none; }
         .stat-label { opacity: 0.8; }
         .stat-value { font-weight: bold; color: #00ccff; }
@@ -342,7 +314,8 @@
 <div class="navbar">
     <h2>🤖 AI Detector</h2>
     <div class="nav-links">
-        <a onclick="switchTab('home')" id="nav-home" class="active">Home</a>
+        <a onclick="switchTab('home')" id="nav-home" class="active">Detector</a>
+        <a onclick="switchTab('converter')" id="nav-conv">Converter</a>
         <a onclick="switchTab('dashboard')" id="nav-dash">Dashboard</a>
         <a href="#about">About</a>
         <a href="#contact">Contact</a>
@@ -360,13 +333,46 @@
                 <div id="uploadText">
                     📂 Drag & Drop PPT here <br><br> or <b>Click to Upload</b>
                 </div>
-                <div id="filePreview">
-                    <p id="fileName"></p>
-                    <p id="fileSize"></p>
-                    <button type="button" id="removeFile">❌ Remove</button>
+                <div id="filePreview" class="file-preview">
+                    <p id="fileName" class="file-name"></p>
+                    <p id="fileSize" class="file-size"></p>
+                    <button type="button" id="removeFile" class="remove-file">❌ Remove</button>
                 </div>
             </div>
-            <button class="scan-btn" id="scanBtn" disabled>🚀 Scan for AI</button>
+            <button type="button" class="scan-btn" id="scanBtn" disabled>🚀 Scan for AI</button>
+        </form>
+    </div>
+</div>
+
+<div id="converterView" class="view">
+    <div class="card">
+        <h1>Universal File Converter</h1>
+        <p>Convert your documents between multiple formats securely.</p>
+
+        <form id="convertForm">
+            <div id="convDropArea" class="upload-box">
+                <input type="file" id="convFileInput" name="convFile">
+                <div id="convUploadText">
+                    📂 Drag & Drop File here <br><br> or <b>Click to Upload</b>
+                </div>
+                <div id="convFilePreview" class="file-preview">
+                    <p id="convFileName" class="file-name"></p>
+                    <p id="convFileSize" class="file-size"></p>
+                    <button type="button" id="convRemoveFile" class="remove-file">❌ Remove</button>
+                </div>
+            </div>
+
+            <div class="format-selector">
+                <label>Convert to:</label>
+                <select id="formatSelect">
+                    <option value="pdf">PDF (.pdf)</option>
+                    <option value="docx">Word (.docx)</option>
+                    <option value="pptx">PowerPoint (.pptx)</option>
+                    <option value="txt">Text (.txt)</option>
+                </select>
+            </div>
+
+            <button type="button" class="scan-btn" id="convertBtn" disabled>🔄 Convert File</button>
         </form>
     </div>
 </div>
@@ -388,22 +394,10 @@
 
         <div class="dash-card">
             <h3>Recent Scan Metrics</h3>
-            <div class="stat-row">
-                <span class="stat-label">Total Presentations Scanned</span>
-                <span class="stat-value">142</span>
-            </div>
-            <div class="stat-row">
-                <span class="stat-label">AI Flags Triggered</span>
-                <span class="stat-value">84</span>
-            </div>
-            <div class="stat-row">
-                <span class="stat-label">Human Written Avg</span>
-                <span class="stat-value">62%</span>
-            </div>
-            <div class="stat-row">
-                <span class="stat-label">Processing Time</span>
-                <span class="stat-value">1.2s</span>
-            </div>
+            <div class="stat-row"><span class="stat-label">Total Presentations Scanned</span><span class="stat-value">142</span></div>
+            <div class="stat-row"><span class="stat-label">AI Flags Triggered</span><span class="stat-value">84</span></div>
+            <div class="stat-row"><span class="stat-label">Human Written Avg</span><span class="stat-value">62%</span></div>
+            <div class="stat-row"><span class="stat-label">Processing Time</span><span class="stat-value">1.2s</span></div>
         </div>
 
         <div class="dash-card">
@@ -422,7 +416,7 @@
 
 <div id="about" class="section">
     <h2>About</h2>
-    <p>This tool uses Machine Learning and NLP techniques to detect AI-generated content in presentations.</p>
+    <p>This tool uses Machine Learning and NLP techniques to detect AI-generated content in presentations and convert files seamlessly.</p>
 </div>
 
 <div id="contact" class="section">
@@ -433,83 +427,165 @@
 <script>
 // --- UI TAB SWITCHING LOGIC ---
 function switchTab(tabId) {
-    // Update Nav Links
     document.getElementById('nav-home').classList.remove('active');
+    document.getElementById('nav-conv').classList.remove('active');
     document.getElementById('nav-dash').classList.remove('active');
+    
+    document.getElementById('homeView').classList.remove('active');
+    document.getElementById('converterView').classList.remove('active');
+    document.getElementById('dashboardView').classList.remove('active');
     
     if(tabId === 'home') {
         document.getElementById('nav-home').classList.add('active');
         document.getElementById('homeView').classList.add('active');
-        document.getElementById('dashboardView').classList.remove('active');
-    } else {
+    } else if (tabId === 'converter') {
+        document.getElementById('nav-conv').classList.add('active');
+        document.getElementById('converterView').classList.add('active');
+    } else if (tabId === 'dashboard') {
         document.getElementById('nav-dash').classList.add('active');
         document.getElementById('dashboardView').classList.add('active');
-        document.getElementById('homeView').classList.remove('active');
     }
 }
 
-// --- FILE UPLOAD LOGIC ---
-const dropArea = document.getElementById("dropArea");
-const fileInput = document.getElementById("fileInput");
-const filePreview = document.getElementById("filePreview");
-const fileName = document.getElementById("fileName");
-const fileSize = document.getElementById("fileSize");
-const removeBtn = document.getElementById("removeFile");
+// --- SHARED FILE HANDLER LOGIC ---
+function setupUpload(dropAreaId, fileInputId, filePreviewId, fileNameId, fileSizeId, removeBtnId, actionBtnId, uploadTextId, context) {
+    const dropArea = document.getElementById(dropAreaId);
+    const fileInput = document.getElementById(fileInputId);
+    const filePreview = document.getElementById(filePreviewId);
+    const fileName = document.getElementById(fileNameId);
+    const fileSize = document.getElementById(fileSizeId);
+    const removeBtn = document.getElementById(removeBtnId);
+    const actionBtn = document.getElementById(actionBtnId);
+    const uploadText = document.getElementById(uploadTextId);
+
+    dropArea.addEventListener("click", () => fileInput.click());
+
+    ["dragenter", "dragover"].forEach(event => {
+        dropArea.addEventListener(event, e => {
+            e.preventDefault();
+            dropArea.classList.add("dragover");
+        });
+    });
+
+    ["dragleave", "drop"].forEach(event => {
+        dropArea.addEventListener(event, e => {
+            e.preventDefault();
+            dropArea.classList.remove("dragover");
+        });
+    });
+
+    dropArea.addEventListener("drop", e => {
+        handleFileSelect(e.dataTransfer.files[0]);
+    });
+
+    fileInput.addEventListener("change", () => {
+        handleFileSelect(fileInput.files[0]);
+    });
+
+    removeBtn.addEventListener("click", (e) => {
+        e.stopPropagation(); 
+        fileInput.value = "";
+        filePreview.style.display = "none";
+        uploadText.style.display = "block";
+        actionBtn.disabled = true;
+    });
+
+    function handleFileSelect(file) {
+        if (!file) return;
+
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+
+        if (context === 'detector') {
+            if (!file.name.endsWith(".pptx")) {
+                alert("Only .pptx files allowed for the detector!");
+                return;
+            }
+        }
+        
+        fileInput.files = dataTransfer.files;
+        uploadText.style.display = "none";
+        filePreview.style.display = "block";
+        fileName.innerText = "📄 " + file.name;
+        fileSize.innerText = (file.size / 1024).toFixed(2) + " KB";
+        actionBtn.disabled = false;
+    }
+}
+
+// Initialize File Handlers
+setupUpload("dropArea", "fileInput", "filePreview", "fileName", "fileSize", "removeFile", "scanBtn", "uploadText", "detector");
+setupUpload("convDropArea", "convFileInput", "convFilePreview", "convFileName", "convFileSize", "convRemoveFile", "convertBtn", "convUploadText", "converter");
+
+// --- 1. DETECTOR SUBMIT LOGIC ---
 const scanBtn = document.getElementById("scanBtn");
-const uploadText = document.getElementById("uploadText");
-
-dropArea.addEventListener("click", () => fileInput.click());
-
-["dragenter", "dragover"].forEach(event => {
-    dropArea.addEventListener(event, e => {
-        e.preventDefault();
-        dropArea.classList.add("dragover");
-    });
+const uploadForm = document.getElementById("uploadForm");
+scanBtn.addEventListener("click", () => {
+    scanBtn.innerText = "⏳ Analyzing PPT...";
+    uploadForm.submit(); 
 });
 
-["dragleave", "drop"].forEach(event => {
-    dropArea.addEventListener(event, e => {
-        e.preventDefault();
-        dropArea.classList.remove("dragover");
-    });
-});
-
-dropArea.addEventListener("drop", e => {
-    const file = e.dataTransfer.files[0];
-    handleFile(file);
-});
-
-fileInput.addEventListener("change", () => {
-    handleFile(fileInput.files[0]);
-});
-
-function handleFile(file) {
+// --- 2. CONVERTER API LOGIC (THE DOWNLOAD FIX) ---
+const convertBtn = document.getElementById("convertBtn");
+convertBtn.addEventListener("click", async (e) => {
+    e.preventDefault();
+    const convFileInput = document.getElementById("convFileInput");
+    const file = convFileInput.files[0];
+    const format = document.getElementById("formatSelect").value;
+    
     if (!file) return;
 
-    if (!file.name.endsWith(".pptx")) {
-        alert("Only .pptx files allowed!");
+    // Determine backend conversion type based on file and dropdown
+    let type = "";
+    if (file.name.endsWith(".pptx")) {
+        type = (format === "pdf") ? "ppt-pdf" : "ppt-text";
+    } else if (file.name.endsWith(".txt")) {
+        type = "text-ppt";
+    } else {
+        alert("Unsupported conversion logic for this file type in backend.");
         return;
     }
 
-    const dataTransfer = new DataTransfer();
-    dataTransfer.items.add(file);
-    fileInput.files = dataTransfer.files;
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("type", type);
 
-    uploadText.style.display = "none";
-    filePreview.style.display = "block";
+    convertBtn.innerText = "⏳ Converting...";
+    convertBtn.disabled = true;
 
-    fileName.innerText = "📄 " + file.name;
-    fileSize.innerText = (file.size / 1024).toFixed(2) + " KB";
+    try {
+        const response = await fetch("/api/convert", { method: "POST", body: formData });
+        const data = await response.json();
 
-    scanBtn.disabled = false;
-}
-
-removeBtn.addEventListener("click", (e) => {
-    e.stopPropagation(); // Prevent triggering the upload click
-    fileInput.value = "";
-    filePreview.style.display = "none";
-    uploadText.style.display = "block";
-    scanBtn.disabled = true;
+        if (data.status === "success" && data.file_b64) {
+            // Trigger the Download
+            const byteCharacters = atob(data.file_b64);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: data.mime_type });
+            const url = window.URL.createObjectURL(blob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = file.name.split('.')[0] + "_converted" + data.extension;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            
+            alert("✅ Conversion Successful! File is downloading.");
+        } else {
+            alert("❌ Error: " + (data.error || "Unknown server error"));
+        }
+    } catch (err) {
+        alert("❌ Failed to connect to server. Check your console/terminal.");
+        console.error(err);
+    } finally {
+        convertBtn.innerText = "🔄 Convert File";
+        convertBtn.disabled = false;
+    }
 });
 </script>
 
