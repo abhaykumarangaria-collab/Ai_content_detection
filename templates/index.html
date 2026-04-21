@@ -3,213 +3,41 @@
 <head>
     <title>AI PPT Detector & Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <style>
-        body {
-            margin: 0;
-            font-family: 'Segoe UI', sans-serif;
-            color: white;
-            background: #0f172a;
-            overflow-x: hidden;
-        }
-
-        /* GRID BACKGROUND */
-        body::before {
-            content: "";
-            position: fixed;
-            width: 100%;
-            height: 100%;
-            background-image: 
-                linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
-            background-size: 40px 40px;
-            z-index: -1;
-        }
-
-        /* PARTICLES */
-        .particles span {
-            position: absolute;
-            width: 4px;
-            height: 4px;
-            background: #00ffcc;
-            border-radius: 50%;
-            animation: float 10s linear infinite;
-        }
-
-        @keyframes float {
-            from { transform: translateY(100vh); opacity: 0; }
-            to { transform: translateY(-10vh); opacity: 1; }
-        }
-
-        /* NAVBAR */
-        .navbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 50px;
-            background: rgba(255,255,255,0.05);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-        }
-
-        .nav-links a {
-            margin-left: 25px;
-            text-decoration: none;
-            color: white;
-            position: relative;
-            cursor: pointer;
-        }
-
-        .nav-links a::after {
-            content: "";
-            position: absolute;
-            width: 0%;
-            height: 2px;
-            bottom: -5px;
-            left: 0;
-            background: #00ffcc;
-            transition: 0.3s;
-        }
-
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; color: white; background: #0f172a; overflow-x: hidden; }
+        body::before { content: ""; position: fixed; width: 100%; height: 100%; background-image: linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px); background-size: 40px 40px; z-index: -1; }
+        .particles span { position: absolute; width: 4px; height: 4px; background: #00ffcc; border-radius: 50%; animation: float 10s linear infinite; }
+        @keyframes float { from { transform: translateY(100vh); opacity: 0; } to { transform: translateY(-10vh); opacity: 1; } }
+        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 50px; background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.1); position: sticky; top: 0; z-index: 1000; }
+        .nav-links a { margin-left: 25px; text-decoration: none; color: white; position: relative; cursor: pointer; }
+        .nav-links a::after { content: ""; position: absolute; width: 0%; height: 2px; bottom: -5px; left: 0; background: #00ffcc; transition: 0.3s; }
         .nav-links a:hover::after, .nav-links a.active::after { width: 100%; }
         .nav-links a.active { color: #00ffcc; }
-
-        /* VIEW CONTAINER */
-        .view {
-            display: none;
-            min-height: 90vh;
-            padding: 40px 20px;
-            box-sizing: border-box;
-            animation: startup 0.5s ease;
-        }
-
+        .view { display: none; min-height: 90vh; padding: 40px 20px; box-sizing: border-box; animation: startup 0.5s ease; }
         .view.active { display: flex; }
         #homeView, #converterView { flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 60px; }
         #dashboardView { flex-direction: column; align-items: center; }
-
-        /* CARD (Home & Converter) */
-        .card {
-            background: rgba(255,255,255,0.05);
-            backdrop-filter: blur(20px);
-            padding: 40px;
-            border-radius: 20px;
-            text-align: center;
-            width: 380px;
-            box-shadow: 0 0 40px rgba(0,255,200,0.1);
-        }
-
-        @keyframes startup {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
+        .card { background: rgba(255,255,255,0.05); backdrop-filter: blur(20px); padding: 40px; border-radius: 20px; text-align: center; width: 380px; box-shadow: 0 0 40px rgba(0,255,200,0.1); }
+        @keyframes startup { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         h1, h2, h3 { margin-top: 0; margin-bottom: 10px; }
         p { opacity: 0.7; }
-
-        /* BADGES */
         .badge-container { margin-bottom: 15px; }
-        .badge {
-            display: inline-block;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: bold;
-            background: rgba(0, 255, 204, 0.1);
-            color: #00ffcc;
-            border: 1px solid rgba(0, 255, 204, 0.3);
-            margin: 0 3px;
-        }
-
-        /* UPLOAD BOX */
-        .upload-box {
-            border: 2px dashed rgba(255,255,255,0.3);
-            padding: 30px;
-            margin: 20px 0;
-            border-radius: 15px;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-
-        .upload-box.dragover {
-            border-color: #00ffcc;
-            background: rgba(0,255,200,0.1);
-            transform: scale(1.02);
-        }
-
+        .badge { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; background: rgba(0, 255, 204, 0.1); color: #00ffcc; border: 1px solid rgba(0, 255, 204, 0.3); margin: 0 3px; }
+        .upload-box { border: 2px dashed rgba(255,255,255,0.3); padding: 30px; margin: 20px 0; border-radius: 15px; cursor: pointer; transition: 0.3s; }
+        .upload-box.dragover { border-color: #00ffcc; background: rgba(0,255,200,0.1); transform: scale(1.02); }
         input[type="file"] { display: none; }
-
         .file-constraints { font-size: 11px; opacity: 0.5; margin-top: 10px; display: block; }
-
-        /* PREVIEW */
         .file-preview { margin-top: 10px; display: none; }
         .file-name { font-weight: bold; color: #00ffcc; word-break: break-all; }
         .file-size { font-size: 12px; opacity: 0.7; }
-        .remove-file {
-            margin-top: 8px;
-            padding: 5px 10px;
-            border: none;
-            background: rgba(255, 50, 50, 0.8);
-            color: white;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        /* BUTTON */
-        .scan-btn {
-            padding: 12px 30px;
-            border: none;
-            border-radius: 30px;
-            font-weight: bold;
-            cursor: pointer;
-            background: linear-gradient(45deg, #00ffcc, #00ccff);
-            color: black;
-            position: relative;
-            overflow: hidden;
-            width: 100%;
-        }
-
+        .remove-file { margin-top: 8px; padding: 5px 10px; border: none; background: rgba(255, 50, 50, 0.8); color: white; border-radius: 5px; cursor: pointer; }
+        .scan-btn { padding: 12px 30px; border: none; border-radius: 30px; font-weight: bold; cursor: pointer; background: linear-gradient(45deg, #00ffcc, #00ccff); color: black; position: relative; overflow: hidden; width: 100%; }
         .scan-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        .scan-btn::before {
-            content: "";
-            position: absolute;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(120deg, transparent, rgba(255,255,255,0.6), transparent);
-            top: -50%;
-            left: -50%;
-            transform: rotate(25deg);
-            opacity: 0;
-        }
-
+        .scan-btn::before { content: ""; position: absolute; width: 200%; height: 200%; background: linear-gradient(120deg, transparent, rgba(255,255,255,0.6), transparent); top: -50%; left: -50%; transform: rotate(25deg); opacity: 0; }
         .scan-btn:hover:not(:disabled)::before { animation: shine 1s forwards; }
-
-        @keyframes shine {
-            0% { left: -50%; opacity: 0; }
-            50% { opacity: 1; }
-            100% { left: 150%; opacity: 0; }
-        }
-
-        .scan-btn:hover:not(:disabled) {
-            transform: scale(1.05);
-            box-shadow: 0 0 20px #00ffcc;
-        }
-
-        /* TRUST TEXT */
-        .trust-text {
-            font-size: 11px;
-            opacity: 0.6;
-            margin-top: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 5px;
-        }
-
-        /* HOW IT WORKS */
+        @keyframes shine { 0% { left: -50%; opacity: 0; } 50% { opacity: 1; } 100% { left: 150%; opacity: 0; } }
+        .scan-btn:hover:not(:disabled) { transform: scale(1.05); box-shadow: 0 0 20px #00ffcc; }
+        .trust-text { font-size: 11px; opacity: 0.6; margin-top: 15px; display: flex; align-items: center; justify-content: center; gap: 5px; }
         .how-it-works { margin-top: 60px; text-align: center; width: 100%; max-width: 800px; }
         .how-it-works h2 { color: #00ffcc; font-size: 22px; margin-bottom: 30px; }
         .steps-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
@@ -218,12 +46,8 @@
         .step-icon { font-size: 30px; margin-bottom: 15px; }
         .step-card h3 { font-size: 16px; margin-bottom: 10px; color: white; }
         .step-card p { font-size: 13px; opacity: 0.7; }
-
-        /* FORMAT SELECTOR FOR CONVERTER */
         .format-selector { margin: 15px 0; display: flex; justify-content: space-between; align-items: center; }
         .format-selector select { padding: 8px; border-radius: 5px; background: rgba(0,0,0,0.5); color: white; border: 1px solid #00ffcc; outline: none; width: 60%; }
-
-        /* DASHBOARD STYLES */
         .dashboard-header { width: 100%; max-width: 1200px; margin-bottom: 30px; text-align: center;}
         .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; width: 100%; max-width: 1200px; }
         .dash-card { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 15px; padding: 25px; display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
@@ -239,8 +63,6 @@
         .stat-row:last-child { border-bottom: none; }
         .stat-label { opacity: 0.8; }
         .stat-value { font-weight: bold; color: #00ccff; }
-        
-        /* NEW ABOUT PAGE STYLES */
         .section { padding: 100px 20px; text-align: center; background: rgba(255,255,255,0.02); border-top: 1px solid rgba(255,255,255,0.05); }
         .about-container { max-width: 1000px; margin: 0 auto; }
         .about-title { color: #00ffcc; font-size: 36px; margin-bottom: 20px; }
@@ -251,17 +73,13 @@
         .about-card-icon { font-size: 40px; margin-bottom: 15px; }
         .about-card h3 { color: white; font-size: 18px; margin-bottom: 10px;}
         .about-card p { opacity: 0.7; font-size: 14px; line-height: 1.5; }
-        
     </style>
 </head>
 
 <body>
-
 <div class="particles">
-    <span style="left:10%; animation-delay:0s;"></span>
-    <span style="left:30%; animation-delay:2s;"></span>
-    <span style="left:50%; animation-delay:4s;"></span>
-    <span style="left:70%; animation-delay:1s;"></span>
+    <span style="left:10%; animation-delay:0s;"></span><span style="left:30%; animation-delay:2s;"></span>
+    <span style="left:50%; animation-delay:4s;"></span><span style="left:70%; animation-delay:1s;"></span>
     <span style="left:90%; animation-delay:3s;"></span>
 </div>
 
@@ -271,336 +89,131 @@
         <a onclick="switchTab('home')" id="nav-home" class="active">Detector</a>
         <a onclick="switchTab('converter')" id="nav-conv">Converter</a>
         <a onclick="switchTab('dashboard')" id="nav-dash">Dashboard</a>
-        <a href="#about">About</a>
-        <a href="#contact">Contact</a>
+        <a href="#about">About</a><a href="#contact">Contact</a>
     </div>
 </div>
 
 <div id="homeView" class="view active">
-    
     <div class="card">
-        <div class="badge-container">
-            <span class="badge">🎓 Educators</span>
-            <span class="badge">💼 Professionals</span>
-            <span class="badge">✍️ Students</span>
-        </div>
-
+        <div class="badge-container"><span class="badge">🎓 Educators</span><span class="badge">💼 Professionals</span><span class="badge">✍️ Students</span></div>
         <h1>Free AI PPT Detector</h1>
         <p>Upload your presentation and detect AI-generated content instantly</p>
-
         <form id="uploadForm" action="/predict_ppt" method="post" enctype="multipart/form-data">
             <div id="dropArea" class="upload-box">
                 <input type="file" id="fileInput" name="file" accept=".pptx">
-                <div id="uploadText">
-                    📂 Drag & Drop PPT here <br><br> or <b>Click to Upload</b>
-                    <span class="file-constraints">Max size: 50MB | Formats: .pptx</span>
-                </div>
-                <div id="filePreview" class="file-preview">
-                    <p id="fileName" class="file-name"></p>
-                    <p id="fileSize" class="file-size"></p>
-                    <button type="button" id="removeFile" class="remove-file">❌ Remove</button>
-                </div>
+                <div id="uploadText">📂 Drag & Drop PPT here <br><br> or <b>Click to Upload</b><span class="file-constraints">Max size: 50MB | Formats: .pptx</span></div>
+                <div id="filePreview" class="file-preview"><p id="fileName" class="file-name"></p><p id="fileSize" class="file-size"></p><button type="button" id="removeFile" class="remove-file">❌ Remove</button></div>
             </div>
             <button type="button" class="scan-btn" id="scanBtn" disabled>🚀 Scan for AI</button>
-            
             <div class="trust-text">🔒 Secure & Private. Files auto-delete after scanning.</div>
         </form>
     </div>
-
     <div class="how-it-works">
         <h2>How It Works</h2>
         <div class="steps-container">
-            <div class="step-card">
-                <div class="step-icon">📂</div>
-                <h3>1. Upload</h3>
-                <p>Drop your presentation into our secure, encrypted portal.</p>
-            </div>
-            <div class="step-card">
-                <div class="step-icon">🧠</div>
-                <h3>2. Analyze</h3>
-                <p>Our NLP models scan sentence structure, perplexity, and burstiness.</p>
-            </div>
-            <div class="step-card">
-                <div class="step-icon">📊</div>
-                <h3>3. Review</h3>
-                <p>Get a slide-by-slide breakdown of human vs. AI content.</p>
-            </div>
+            <div class="step-card"><div class="step-icon">📂</div><h3>1. Upload</h3><p>Drop your presentation into our secure portal.</p></div>
+            <div class="step-card"><div class="step-icon">🧠</div><h3>2. Analyze</h3><p>Our ensemble models scan structure and burstiness.</p></div>
+            <div class="step-card"><div class="step-icon">📊</div><h3>3. Review</h3><p>Get a slide-by-slide breakdown & summary.</p></div>
         </div>
     </div>
-
 </div>
 
 <div id="converterView" class="view">
     <div class="card">
         <h1>Universal File Converter</h1>
         <p>Convert your documents between multiple formats securely.</p>
-
         <form id="convertForm">
             <div id="convDropArea" class="upload-box">
                 <input type="file" id="convFileInput" name="convFile">
-                <div id="convUploadText">
-                    📂 Drag & Drop File here <br><br> or <b>Click to Upload</b>
-                    <span class="file-constraints">Formats: .pptx, .txt, .pdf</span>
-                </div>
-                <div id="convFilePreview" class="file-preview">
-                    <p id="convFileName" class="file-name"></p>
-                    <p id="convFileSize" class="file-size"></p>
-                    <button type="button" id="convRemoveFile" class="remove-file">❌ Remove</button>
-                </div>
+                <div id="convUploadText">📂 Drag & Drop File here <br><br> or <b>Click to Upload</b><span class="file-constraints">Formats: .pptx, .txt, .pdf</span></div>
+                <div id="convFilePreview" class="file-preview"><p id="convFileName" class="file-name"></p><p id="convFileSize" class="file-size"></p><button type="button" id="convRemoveFile" class="remove-file">❌ Remove</button></div>
             </div>
-
             <div class="format-selector">
                 <label>Convert to:</label>
-                <select id="formatSelect">
-                    <option value="pdf">PDF (.pdf)</option>
-                    <option value="docx">Word (.docx)</option>
-                    <option value="pptx">PowerPoint (.pptx)</option>
-                    <option value="txt">Text (.txt)</option>
-                </select>
+                <select id="formatSelect"><option value="pdf">PDF (.pdf)</option><option value="txt">Text (.txt)</option><option value="pptx">PowerPoint (.pptx)</option></select>
             </div>
-
             <button type="button" class="scan-btn" id="convertBtn" disabled>🔄 Convert File</button>
-            
             <div class="trust-text">🔒 Stateless Conversion. No files are stored.</div>
         </form>
     </div>
 </div>
 
 <div id="dashboardView" class="view">
-    <div class="dashboard-header">
-        <h2>Performance Dashboard</h2>
-        <p>Analyze AI detection statistics and presentation metrics.</p>
-    </div>
-
+    <div class="dashboard-header"><h2>Performance Dashboard</h2><p>Analyze AI detection statistics and presentation metrics.</p></div>
     <div class="dashboard-grid">
-        <div class="dash-card">
-            <h3>Overall AI Risk Score</h3>
-            <div class="donut-chart">
-                <span class="donut-value">80%</span>
-            </div>
-            <p style="text-align: center; font-size: 14px; margin-top: 15px;">High probability of AI-generated content detected across recent scans.</p>
-        </div>
-
-        <div class="dash-card">
-            <h3>Recent Scan Metrics</h3>
-            <div class="stat-row"><span class="stat-label">Total Presentations Scanned</span><span class="stat-value">142</span></div>
-            <div class="stat-row"><span class="stat-label">AI Flags Triggered</span><span class="stat-value">84</span></div>
-            <div class="stat-row"><span class="stat-label">Human Written Avg</span><span class="stat-value">62%</span></div>
-            <div class="stat-row"><span class="stat-label">Processing Time</span><span class="stat-value">1.2s</span></div>
-        </div>
-
-        <div class="dash-card">
-            <h3>AI Detections by Month</h3>
-            <div class="bar-chart">
-                <div class="bar" style="height: 40%;" data-val="Jan"></div>
-                <div class="bar" style="height: 65%;" data-val="Feb"></div>
-                <div class="bar" style="height: 85%;" data-val="Mar"></div>
-                <div class="bar" style="height: 50%;" data-val="Apr"></div>
-                <div class="bar" style="height: 90%;" data-val="May"></div>
-                <div class="bar" style="height: 70%;" data-val="Jun"></div>
-            </div>
-        </div>
+        <div class="dash-card"><h3>Overall AI Risk Score</h3><div class="donut-chart"><span class="donut-value">80%</span></div><p style="text-align: center; font-size: 14px; margin-top: 15px;">High probability of AI-generated content detected across recent scans.</p></div>
+        <div class="dash-card"><h3>Recent Scan Metrics</h3><div class="stat-row"><span class="stat-label">Total Scanned</span><span class="stat-value">142</span></div><div class="stat-row"><span class="stat-label">AI Flags</span><span class="stat-value">84</span></div><div class="stat-row"><span class="stat-label">Human Avg</span><span class="stat-value">62%</span></div><div class="stat-row"><span class="stat-label">Process Time</span><span class="stat-value">1.2s</span></div></div>
+        <div class="dash-card"><h3>Detections by Month</h3><div class="bar-chart"><div class="bar" style="height: 40%;" data-val="Jan"></div><div class="bar" style="height: 65%;" data-val="Feb"></div><div class="bar" style="height: 85%;" data-val="Mar"></div><div class="bar" style="height: 50%;" data-val="Apr"></div></div></div>
     </div>
 </div>
 
 <div id="about" class="section">
-    <div class="about-container">
-        <h2 class="about-title">Empowering Authenticity</h2>
-        <p class="about-subtitle">
-            As generative AI becomes more seamlessly integrated into our daily workflows, distinguishing between human creativity and machine-generated content is crucial. We built AI Detector to bring transparency back to digital communications for educators, professionals, and creators.
-        </p>
-
+    <div class="about-container"><h2 class="about-title">Empowering Authenticity</h2><p class="about-subtitle">As generative AI becomes more seamlessly integrated, distinguishing between human creativity and machine content is crucial.</p>
         <div class="about-grid">
-            <div class="about-card">
-                <div class="about-card-icon">⚙️</div>
-                <h3>Advanced NLP Engine</h3>
-                <p>Powered by XGBoost and the Natural Language Toolkit (NLTK), our algorithm analyzes linguistic patterns, sentence burstiness, and predictive perplexity.</p>
-            </div>
-            <div class="about-card">
-                <div class="about-card-icon">🔒</div>
-                <h3>Zero-Retention Policy</h3>
-                <p>Your privacy is our priority. We utilize a completely stateless processing architecture. Your files are permanently deleted from our servers the millisecond the scan is complete.</p>
-            </div>
-            <div class="about-card">
-                <div class="about-card-icon">⚡</div>
-                <h3>Lightning Fast</h3>
-                <p>No waiting in queues. Our highly optimized backend extracts text, transforms vectors, and processes complex presentation structures in mere seconds.</p>
-            </div>
+            <div class="about-card"><div class="about-card-icon">⚙️</div><h3>Advanced Ensemble</h3><p>Powered by XGBoost and SGD Classifiers, we analyze linguistic patterns and perplexity.</p></div>
+            <div class="about-card"><div class="about-card-icon">🔒</div><h3>Zero-Retention</h3><p>Your files are permanently deleted from our servers the millisecond the scan is complete.</p></div>
+            <div class="about-card"><div class="about-card-icon">⚡</div><h3>Lightning Fast</h3><p>No waiting in queues. Our optimized backend processes presentations in seconds.</p></div>
         </div>
     </div>
 </div>
 
 <div id="contact" class="section" style="border-top:none; padding-top: 20px;">
-    <h2>Contact Us</h2>
-    <p style="opacity: 0.7; margin-bottom: 20px;">Have questions about our API, enterprise solutions, or just want to say hi?</p>
+    <h2>Contact Us</h2><p style="opacity: 0.7; margin-bottom: 20px;">Have questions about our API or enterprise solutions?</p>
     <a href="mailto:support@aidetector.com" style="color: #0f172a; background: #00ffcc; padding: 10px 25px; border-radius: 20px; text-decoration: none; font-weight: bold;">✉️ support@aidetector.com</a>
-    <p style="font-size: 12px; opacity: 0.4; margin-top: 60px;">© 2024 AI Detector. All rights reserved.</p>
 </div>
 
 <script>
-// --- UI TAB SWITCHING LOGIC ---
 function switchTab(tabId) {
-    document.getElementById('nav-home').classList.remove('active');
-    document.getElementById('nav-conv').classList.remove('active');
-    document.getElementById('nav-dash').classList.remove('active');
-    
-    document.getElementById('homeView').classList.remove('active');
-    document.getElementById('converterView').classList.remove('active');
-    document.getElementById('dashboardView').classList.remove('active');
-    
-    if(tabId === 'home') {
-        document.getElementById('nav-home').classList.add('active');
-        document.getElementById('homeView').classList.add('active');
-    } else if (tabId === 'converter') {
-        document.getElementById('nav-conv').classList.add('active');
-        document.getElementById('converterView').classList.add('active');
-    } else if (tabId === 'dashboard') {
-        document.getElementById('nav-dash').classList.add('active');
-        document.getElementById('dashboardView').classList.add('active');
-    }
+    ['home', 'conv', 'dash'].forEach(t => document.getElementById('nav-'+t).classList.remove('active'));
+    ['homeView', 'converterView', 'dashboardView'].forEach(v => document.getElementById(v).classList.remove('active'));
+    document.getElementById('nav-' + (tabId==='home'?'home':tabId==='converter'?'conv':'dash')).classList.add('active');
+    document.getElementById(tabId + 'View').classList.add('active');
 }
 
-// --- SHARED FILE HANDLER LOGIC ---
 function setupUpload(dropAreaId, fileInputId, filePreviewId, fileNameId, fileSizeId, removeBtnId, actionBtnId, uploadTextId, context) {
-    const dropArea = document.getElementById(dropAreaId);
-    const fileInput = document.getElementById(fileInputId);
-    const filePreview = document.getElementById(filePreviewId);
-    const fileName = document.getElementById(fileNameId);
-    const fileSize = document.getElementById(fileSizeId);
-    const removeBtn = document.getElementById(removeBtnId);
-    const actionBtn = document.getElementById(actionBtnId);
-    const uploadText = document.getElementById(uploadTextId);
-
-    dropArea.addEventListener("click", () => fileInput.click());
-
-    ["dragenter", "dragover"].forEach(event => {
-        dropArea.addEventListener(event, e => {
-            e.preventDefault();
-            dropArea.classList.add("dragover");
-        });
-    });
-
-    ["dragleave", "drop"].forEach(event => {
-        dropArea.addEventListener(event, e => {
-            e.preventDefault();
-            dropArea.classList.remove("dragover");
-        });
-    });
-
-    dropArea.addEventListener("drop", e => {
-        handleFileSelect(e.dataTransfer.files[0]);
-    });
-
-    fileInput.addEventListener("change", () => {
-        handleFileSelect(fileInput.files[0]);
-    });
-
-    removeBtn.addEventListener("click", (e) => {
-        e.stopPropagation(); 
-        fileInput.value = "";
-        filePreview.style.display = "none";
-        uploadText.style.display = "block";
-        actionBtn.disabled = true;
-    });
+    const dropArea = document.getElementById(dropAreaId), fileInput = document.getElementById(fileInputId), filePreview = document.getElementById(filePreviewId), fileName = document.getElementById(fileNameId), fileSize = document.getElementById(fileSizeId), removeBtn = document.getElementById(removeBtnId), actionBtn = document.getElementById(actionBtnId), uploadText = document.getElementById(uploadTextId);
+    dropArea.onclick = () => fileInput.click();
+    ["dragenter", "dragover"].forEach(evt => dropArea.addEventListener(evt, e => { e.preventDefault(); dropArea.classList.add("dragover"); }));
+    ["dragleave", "drop"].forEach(evt => dropArea.addEventListener(evt, e => { e.preventDefault(); dropArea.classList.remove("dragover"); }));
+    dropArea.ondrop = e => handleFileSelect(e.dataTransfer.files[0]);
+    fileInput.onchange = () => handleFileSelect(fileInput.files[0]);
+    removeBtn.onclick = e => { e.stopPropagation(); fileInput.value = ""; filePreview.style.display = "none"; uploadText.style.display = "block"; actionBtn.disabled = true; };
 
     function handleFileSelect(file) {
         if (!file) return;
-
-        const dataTransfer = new DataTransfer();
-        dataTransfer.items.add(file);
-
-        if (context === 'detector') {
-            if (!file.name.endsWith(".pptx")) {
-                alert("Only .pptx files allowed for the detector!");
-                return;
-            }
-        }
-        
-        fileInput.files = dataTransfer.files;
-        uploadText.style.display = "none";
-        filePreview.style.display = "block";
-        fileName.innerText = "📄 " + file.name;
-        fileSize.innerText = (file.size / 1024).toFixed(2) + " KB";
+        if (context === 'detector' && !file.name.endsWith(".pptx")) return alert("Only .pptx files allowed!");
+        const dt = new DataTransfer(); dt.items.add(file); fileInput.files = dt.files;
+        uploadText.style.display = "none"; filePreview.style.display = "block";
+        fileName.innerText = "📄 " + file.name; fileSize.innerText = (file.size / 1024).toFixed(2) + " KB";
         actionBtn.disabled = false;
     }
 }
-
-// Initialize File Handlers
 setupUpload("dropArea", "fileInput", "filePreview", "fileName", "fileSize", "removeFile", "scanBtn", "uploadText", "detector");
 setupUpload("convDropArea", "convFileInput", "convFilePreview", "convFileName", "convFileSize", "convRemoveFile", "convertBtn", "convUploadText", "converter");
 
-// --- 1. DETECTOR SUBMIT LOGIC ---
-const scanBtn = document.getElementById("scanBtn");
-const uploadForm = document.getElementById("uploadForm");
-scanBtn.addEventListener("click", () => {
-    scanBtn.innerText = "⏳ Analyzing PPT...";
-    uploadForm.submit(); 
-});
+document.getElementById("scanBtn").onclick = () => { document.getElementById("scanBtn").innerText = "⏳ Analyzing..."; document.getElementById("uploadForm").submit(); };
 
-// --- 2. CONVERTER API LOGIC (THE DOWNLOAD FIX) ---
-const convertBtn = document.getElementById("convertBtn");
-convertBtn.addEventListener("click", async (e) => {
+document.getElementById("convertBtn").onclick = async (e) => {
     e.preventDefault();
-    const convFileInput = document.getElementById("convFileInput");
-    const file = convFileInput.files[0];
-    const format = document.getElementById("formatSelect").value;
-    
+    const file = document.getElementById("convFileInput").files[0], format = document.getElementById("formatSelect").value, btn = document.getElementById("convertBtn");
     if (!file) return;
-
-    // Determine backend conversion type based on file and dropdown
-    let type = "";
-    if (file.name.endsWith(".pptx")) {
-        type = (format === "pdf") ? "ppt-pdf" : "ppt-text";
-    } else if (file.name.endsWith(".txt")) {
-        type = "text-ppt";
-    } else {
-        alert("Unsupported conversion logic for this file type in backend.");
-        return;
-    }
-
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("type", type);
-
-    convertBtn.innerText = "⏳ Converting...";
-    convertBtn.disabled = true;
+    let type = file.name.endsWith(".pptx") ? (format === "pdf" ? "ppt-pdf" : "ppt-text") : (file.name.endsWith(".txt") ? "text-ppt" : "");
+    if (!type) return alert("Unsupported conversion format.");
+    
+    const formData = new FormData(); formData.append("file", file); formData.append("type", type);
+    btn.innerText = "⏳ Converting..."; btn.disabled = true;
 
     try {
-        const response = await fetch("/api/convert", { method: "POST", body: formData });
-        const data = await response.json();
-
+        const response = await fetch("/api/convert", { method: "POST", body: formData }), data = await response.json();
         if (data.status === "success" && data.file_b64) {
-            // Trigger the Download
-            const byteCharacters = atob(data.file_b64);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(i);
-            }
-            const byteArray = new Uint8Array(byteNumbers);
-            const blob = new Blob([byteArray], { type: data.mime_type });
-            const url = window.URL.createObjectURL(blob);
-            
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = file.name.split('.')[0] + "_converted" + data.extension;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-            
-            alert("✅ Conversion Successful! File is downloading.");
-        } else {
-            alert("❌ Error: " + (data.error || "Unknown server error"));
-        }
-    } catch (err) {
-        alert("❌ Failed to connect to server. Check your console/terminal.");
-        console.error(err);
-    } finally {
-        convertBtn.innerText = "🔄 Convert File";
-        convertBtn.disabled = false;
-    }
-});
+            const byteChars = atob(data.file_b64), byteNums = new Array(byteChars.length);
+            for (let i=0; i<byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i);
+            const blob = new Blob([new Uint8Array(byteNums)], { type: data.mime_type }), url = window.URL.createObjectURL(blob), a = document.createElement('a');
+            a.href = url; a.download = file.name.split('.')[0] + "_converted" + data.extension; a.click(); window.URL.revokeObjectURL(url);
+            alert("✅ Download started.");
+        } else alert("❌ Error: " + data.error);
+    } catch (err) { alert("❌ Server Error."); } finally { btn.innerText = "🔄 Convert File"; btn.disabled = false; }
+};
 </script>
-
 </body>
 </html>
