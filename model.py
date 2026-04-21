@@ -14,15 +14,23 @@ from nltk.corpus import stopwords
 from nltk.tokenize import sent_tokenize, word_tokenize
 from werkzeug.utils import secure_filename
 
-# --- 1. NEW GEMINI SDK IMPORT & CONFIG ---
+# --- 1. SECURE GEMINI SDK CONFIGURATION ---
 from google import genai 
-GEMINI_API_KEY = "AIzaSyANQhULzfONxqK8rUCgGvsHe1s9GylRXBw" # <--- PASTE YOUR REAL KEY HERE
+from dotenv import load_dotenv
+
+# Load the hidden variables from the .env file
+load_dotenv()
+
+# Securely grab the key
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 try:
+    if not GEMINI_API_KEY:
+        raise ValueError("API Key is missing from .env file")
     gemini_client = genai.Client(api_key=GEMINI_API_KEY)
-except Exception:
+except Exception as e:
     gemini_client = None
-    print("⚠️ WARNING: Gemini Client failed to start. Check your API Key.")
+    print(f"⚠️ WARNING: Gemini Client failed to start: {e}")
 
 try:
     import comtypes.client
@@ -45,6 +53,7 @@ model_sgd = joblib.load("sgd_ai_model.pkl")
 vectorizer = joblib.load("vectorizer.pkl")
 print("✅ System Ready: AI Ensemble & RAG Active")
 
+# --- 2. HELPER FUNCTIONS ---
 def preprocess(text):
     text = str(text).lower()
     text = re.sub(r"[^a-zA-Z\s]", "", text)
@@ -151,6 +160,7 @@ def retrieve_relevant_slides(question, slide_data, top_k=3):
             context += f"--- Slide {slide_data[i]['slide']} ---\n{slide_data[i]['text']}\n\n"
     return context
 
+# --- 3. ROUTES ---
 @app.route("/")
 def home(): return render_template("index.html")
 
@@ -198,11 +208,10 @@ def api_convert():
             if os.path.exists(path): os.remove(path)
         except Exception: pass 
 
-# --- 2. NEW SDK CHAT ROUTE ---
 @app.route("/api/chat", methods=["POST"])
 def api_chat():
     if not gemini_client:
-        return jsonify({"error": "Gemini API key is missing or invalid. Check model.py."}), 500
+        return jsonify({"error": "Gemini API key is missing or invalid. Check your .env file."}), 500
 
     data = request.json
     question = data.get("question")
@@ -221,14 +230,14 @@ def api_chat():
     User Question: {question}"""
     
     try:
-        # Upgraded to gemini-2.5-flash using the new SDK syntax!
+        # Changed to 1.5-flash to bypass the 503 Overloaded error
         response = gemini_client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-1.5-flash',
             contents=prompt
         )
         return jsonify({"answer": response.text})
     except Exception as e:
-        print(f"❌ CHAT ERROR: {str(e)}") # This prints to terminal so we can debug!
+        print(f"❌ CHAT ERROR: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @app.route("/predict_ppt", methods=["POST"])
