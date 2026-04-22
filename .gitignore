@@ -221,3 +221,6 @@ env/
 
 # Ignore your local uploads folder so you don't push random PPTs to GitHub
 uploads/
+
+capstone project ppt.pptx
+.pptx
