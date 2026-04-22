@@ -99,6 +99,10 @@
     </div>
 </div>
 
+<script id="slide-data" type="application/json">
+    {{ raw_slides | tojson | safe }}
+</script>
+
 <script>
 const prob = parseFloat("{{ probability or 0 }}");
 const aiScore = prob, humanScore = 100 - prob;
@@ -133,7 +137,8 @@ function generateExplanation() {
 }
 
 // --- RAG CHAT LOGIC ---
-const slideData = {{ raw_slides | tojson | safe }};
+// Javascript safely reads the JSON block above without causing VS Code errors!
+const slideData = JSON.parse(document.getElementById("slide-data").textContent || "[]");
 const chatInput = document.getElementById("chatInput");
 const chatHistory = document.getElementById("chatHistory");
 const sendChatBtn = document.getElementById("sendChatBtn");
