@@ -1,4 +1,5 @@
 from flask import Flask, request, render_template, jsonify
+from werkzeug.utils import secure_filename
 from pptx import Presentation
 import joblib
 import re
@@ -8,52 +9,41 @@ import os
 import base64
 import pythoncom
 import heapq
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 from nltk.corpus import stopwords
 from nltk.tokenize import sent_tokenize, word_tokenize
-from werkzeug.utils import secure_filename
 
-# --- 1. SECURE GEMINI SDK CONFIGURATION ---
-from google import genai 
-from dotenv import load_dotenv
+# --- IMPORT YOUR NEW AI MODULE ---
+from rag_engine import SlideRAGEngine
 
-# Load the hidden variables from the .env file
-load_dotenv()
-
-# Securely grab the key
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-
-try:
-    if not GEMINI_API_KEY:
-        raise ValueError("API Key is missing from .env file")
-    gemini_client = genai.Client(api_key=GEMINI_API_KEY)
-except Exception as e:
-    gemini_client = None
-    print(f"⚠️ WARNING: Gemini Client failed to start: {e}")
-
+# Check for comtypes (Windows only, for PDF conversion)
 try:
     import comtypes.client
     COMTYPES_AVAILABLE = True
 except ImportError:
     COMTYPES_AVAILABLE = False
 
+# --- APP CONFIGURATION ---
 app = Flask(__name__)
 UPLOAD_FOLDER = "uploads"
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+# --- NLTK SETUP ---
 nltk.download("stopwords", quiet=True)
 nltk.download("punkt", quiet=True)
 stop_words = set(stopwords.words("english"))
 
+# --- LOAD LOCAL ML MODELS (AI Detection) ---
 print("📦 Loading AI Ensemble Models...")
-model_xgb = joblib.load("xgb_ai_model.pkl")
-model_sgd = joblib.load("sgd_ai_model.pkl") 
-vectorizer = joblib.load("vectorizer.pkl")
-print("✅ System Ready: AI Ensemble & RAG Active")
+try:
+    model_xgb = joblib.load("xgb_ai_model.pkl")
+    model_sgd = joblib.load("sgd_ai_model.pkl") 
+    vectorizer = joblib.load("vectorizer.pkl")
+    print("✅ System Ready: AI Ensemble & RAG Active")
+except Exception as e:
+    print(f"⚠️ Warning: Could not load local ML models: {e}")
 
-# --- 2. HELPER FUNCTIONS ---
+# --- HELPER FUNCTIONS ---
 def preprocess(text):
     text = str(text).lower()
     text = re.sub(r"[^a-zA-Z\s]", "", text)
@@ -136,7 +126,7 @@ def highlight_ai_sentences(text):
     return "".join(highlighted)
 
 def convert_ppt_to_pdf(input_path, output_path):
-    if not COMTYPES_AVAILABLE: raise Exception("comtypes library missing.")
+    if not COMTYPES_AVAILABLE: raise Exception("comtypes library missing or not on Windows.")
     pythoncom.CoInitialize()
     try:
         powerpoint = comtypes.client.CreateObject("Powerpoint.Application")
@@ -147,36 +137,38 @@ def convert_ppt_to_pdf(input_path, output_path):
     finally:
         pythoncom.CoUninitialize()
 
-def retrieve_relevant_slides(question, slide_data, top_k=3):
-    texts = [s['text'] for s in slide_data]
-    if not texts: return ""
-    vectorizer = TfidfVectorizer(stop_words='english')
-    tfidf_matrix = vectorizer.fit_transform(texts + [question])
-    similarities = cosine_similarity(tfidf_matrix[-1], tfidf_matrix[:-1])[0]
-    top_indices = similarities.argsort()[-top_k:][::-1]
-    context = ""
-    for i in top_indices:
-        if similarities[i] > 0.05: 
-            context += f"--- Slide {slide_data[i]['slide']} ---\n{slide_data[i]['text']}\n\n"
-    return context
 
-# --- 3. ROUTES ---
+# --- FLASK ROUTES ---
 @app.route("/")
-def home(): return render_template("index.html")
+def home(): 
+    return render_template("index.html")
 
 @app.route("/api/convert", methods=["POST"])
 def api_convert():
     file = request.files.get("file")
     conversion_type = request.form.get("type")
-    if not file or file.filename == "": return jsonify({"error": "No file"}), 400
+    
+    if not file or file.filename == "": 
+        return jsonify({"error": "No file"}), 400
+        
     path = os.path.join(app.config["UPLOAD_FOLDER"], secure_filename(file.filename))
     file.save(path)
+    
     try:
         if conversion_type == "ppt-text":
             text, _ = extract_text_from_ppt(path)
             prob = get_ensemble_score(text)
             b64 = base64.b64encode(text.encode("utf-8")).decode("utf-8")
-            return jsonify({"status": "success", "ai_probability": round(prob * 100, 2), "human_probability": round((1-prob)*100,2), "file_b64": b64, "mime_type": "text/plain", "extension": ".txt", "scan_complete": True})
+            return jsonify({
+                "status": "success", 
+                "ai_probability": round(prob * 100, 2), 
+                "human_probability": round((1-prob)*100,2), 
+                "file_b64": b64, 
+                "mime_type": "text/plain", 
+                "extension": ".txt", 
+                "scan_complete": True
+            })
+            
         elif conversion_type == "text-ppt":
             with open(path, 'r', encoding='utf-8', errors='ignore') as f:
                 lines = [line.strip() for line in f.readlines() if line.strip()]
@@ -193,14 +185,28 @@ def api_convert():
             with open(out, "rb") as f: b64 = base64.b64encode(f.read()).decode("utf-8")
             try: os.remove(out)
             except Exception: pass
-            return jsonify({"status": "success", "file_b64": b64, "mime_type": "application/vnd.openxmlformats-officedocument.presentationml.presentation", "extension": ".pptx", "scan_complete": False})
+            return jsonify({
+                "status": "success", 
+                "file_b64": b64, 
+                "mime_type": "application/vnd.openxmlformats-officedocument.presentationml.presentation", 
+                "extension": ".pptx", 
+                "scan_complete": False
+            })
+            
         elif conversion_type == "ppt-pdf":
             out = os.path.join(app.config["UPLOAD_FOLDER"], "conv.pdf")
             convert_ppt_to_pdf(path, out)
             with open(out, "rb") as f: b64 = base64.b64encode(f.read()).decode("utf-8")
             try: os.remove(out)
             except Exception: pass
-            return jsonify({"status": "success", "file_b64": b64, "mime_type": "application/pdf", "extension": ".pdf", "scan_complete": False})
+            return jsonify({
+                "status": "success", 
+                "file_b64": b64, 
+                "mime_type": "application/pdf", 
+                "extension": ".pdf", 
+                "scan_complete": False
+            })
+            
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
@@ -210,40 +216,32 @@ def api_convert():
 
 @app.route("/api/chat", methods=["POST"])
 def api_chat():
-    if not gemini_client:
-        return jsonify({"error": "Gemini API key is missing or invalid. Check your .env file."}), 500
-
     data = request.json
     question = data.get("question")
     slides = data.get("slides") 
     
-    context = retrieve_relevant_slides(question, slides)
-    if not context:
-        context = "No specific slides contain this exact information, but use the general context to help."
+    if not question or not slides:
+        return jsonify({"error": "Missing question or slide data."}), 400
 
-    prompt = f"""You are a helpful Presentation Assistant. Use the following extracted slides to answer the user's question. 
-    If the answer isn't in the slides, use your general knowledge but mention it wasn't in the deck. Keep answers concise.
+    # --- RAG ENGINE INTEGRATION ---
+    rag = SlideRAGEngine()
+    success = rag.ingest_slides(slides)
     
-    Context (Relevant Slides):
-    {context}
+    if not success:
+         return jsonify({"error": "Failed to process the slide data."}), 500
+         
+    result = rag.generate_answer(question)
     
-    User Question: {question}"""
-    
-    try:
-        # Changed to 1.5-flash to bypass the 503 Overloaded error
-        response = gemini_client.models.generate_content(
-            model='gemini-1.5-flash',
-            contents=prompt
-        )
-        return jsonify({"answer": response.text})
-    except Exception as e:
-        print(f"❌ CHAT ERROR: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+    if "error" in result:
+        return jsonify({"error": result["error"]}), 500
+        
+    return jsonify({"answer": result["answer"]})
 
 @app.route("/predict_ppt", methods=["POST"])
 def predict_ppt():
     file = request.files.get("file")
     if not file: return "No file"
+    
     path = os.path.join(app.config["UPLOAD_FOLDER"], secure_filename(file.filename))
     file.save(path)
     
