@@ -1,5 +1,8 @@
-from flask import Flask, request, render_template, jsonify
+from flask import Flask, request, render_template, jsonify, flash, redirect, url_for
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from pptx import Presentation
 import joblib
 import re
@@ -27,9 +30,32 @@ except ImportError:
 
 # --- APP CONFIGURATION ---
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'super-secret-key-change-in-production'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 UPLOAD_FOLDER = "uploads"
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# --- DATABASE & LOGIN SETUP ---
+db = SQLAlchemy(app)
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
+login_manager.login_message = "Please log in to access this page."
+
+class User(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(256), nullable=False)
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+# Initialize Database
+with app.app_context():
+    db.create_all()
 
 # --- NLTK SETUP ---
 nltk.download("stopwords", quiet=True)
@@ -61,7 +87,6 @@ def extract_text_from_ppt(file_path):
         for shape in slide.shapes:
             if hasattr(shape, "text") and shape.text:
                 text_chunk = shape.text.strip()
-                # Ignore very short text chunks (titles, names, dates)
                 if len(text_chunk.split()) >= 5:
                     slide_text += text_chunk + " "
         content = slide_text.strip()
@@ -79,7 +104,7 @@ def get_ensemble_score(text):
         prob_sgd = float(model_sgd.predict_proba(vec)[0][1])
         return (prob_xgb * 0.6) + (prob_sgd * 0.4)
     except:
-        return 0.5 # Fallback if models aren't loaded
+        return 0.5 
 
 def analyze_tone(text):
     text_lower = str(text).lower()
@@ -146,6 +171,49 @@ def convert_ppt_to_pdf(input_path, output_path):
     finally:
         pythoncom.CoUninitialize()
 
+# ==========================================
+# 🔐 AUTHENTICATION ROUTES
+# ==========================================
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        if User.query.filter_by(username=username).first():
+            flash("Username already exists!")
+            return redirect(url_for('register'))
+            
+        hashed_pw = generate_password_hash(password, method='pbkdf2:sha256')
+        new_user = User(username=username, password=hashed_pw)
+        db.session.add(new_user)
+        db.session.commit()
+        
+        login_user(new_user)
+        return redirect(url_for('home'))
+        
+    return render_template('register.html', active_page='register')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        user = User.query.filter_by(username=username).first()
+        
+        if user and check_password_hash(user.password, password):
+            login_user(user)
+            return redirect(url_for('home'))
+        else:
+            flash('Invalid username or password')
+            
+    return render_template('login.html', active_page='login')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
 
 # ==========================================
 # 🌐 FRONTEND PAGE ROUTES
@@ -160,10 +228,12 @@ def converter():
     return render_template("converter.html", active_page="converter")
 
 @app.route("/dashboard")
+@login_required
 def dashboard(): 
     return render_template("dashboard.html", active_page="dashboard")
 
 @app.route("/history")
+@login_required
 def history(): 
     return render_template("history.html", active_page="history")
 
@@ -249,6 +319,7 @@ def api_chat():
         return jsonify({"error": f"Chat engine error: {str(e)}"}), 500
 
 @app.route("/predict_ppt", methods=["POST"])
+@login_required
 def predict_ppt():
     file = request.files.get("file")
     if not file: return "No file"
