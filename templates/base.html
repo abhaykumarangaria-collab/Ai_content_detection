@@ -47,6 +47,115 @@
         .theme-toggle { background: none; border: 1px solid var(--border-color); color: var(--text-color); padding: 5px 10px; border-radius: 20px; cursor: pointer; transition: 0.3s; display: flex; align-items: center; gap: 5px;}
         .theme-toggle:hover { background: rgba(0,255,204,0.1); border-color: #00ffcc; }
 
+        /* User Profile Dropdown */
+        .user-dropdown-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .user-profile-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6; 
+            border: none;
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            font-family: inherit;
+        }
+
+        .user-profile-btn:hover {
+            background: rgba(59, 130, 246, 0.25);
+        }
+
+        .user-dropdown-menu {
+            position: absolute;
+            top: calc(100% + 15px);
+            right: 0;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 10px;
+            min-width: 200px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            backdrop-filter: blur(20px);
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1001;
+        }
+
+        .user-dropdown-menu.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            color: var(--text-color) !important;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(0, 255, 204, 0.1);
+            color: #00ffcc !important;
+        }
+        
+        .dropdown-item::after { display: none !important; }
+
+        .dropdown-divider {
+            height: 1px;
+            background: var(--border-color);
+            margin: 5px 0;
+            border: none;
+        }
+
+        .dropdown-logout-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: #ef4444; 
+            color: white !important;
+            text-decoration: none;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: 0.2s;
+            margin-top: 5px;
+        }
+
+        .dropdown-logout-btn:hover {
+            background: #dc2626;
+            transform: scale(1.02);
+        }
+        .dropdown-logout-btn::after { display: none !important; }
+        
+        .dropdown-icon {
+            width: 16px;
+            height: 16px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+        }
+
         /* Main Container & Shared Components */
         .page-container { flex: 1; padding: 60px 20px; display: flex; flex-direction: column; align-items: center; animation: startup 0.5s ease; }
         @keyframes startup { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -75,13 +184,53 @@
         <div class="nav-links">
             <a href="/" class="{{ 'active' if active_page == 'detector' else '' }}">Detector</a>
             <a href="/converter" class="{{ 'active' if active_page == 'converter' else '' }}">Converter</a>
-            <a href="/dashboard" class="{{ 'active' if active_page == 'dashboard' else '' }}">Dashboard</a>
-            <a href="/history" class="{{ 'active' if active_page == 'history' else '' }}">History</a>
+            <a href="/about" class="{{ 'active' if active_page == 'about' else '' }}">About</a>
+            <a href="/contact" class="{{ 'active' if active_page == 'contact' else '' }}">Contact</a>
+            
+            {% if current_user.is_authenticated %}
+                <div class="user-dropdown-container">
+                    <button class="user-profile-btn" onclick="toggleDropdown(event)">
+                        <svg class="dropdown-icon" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" /></svg>
+                        {{ current_user.username }}
+                        <svg class="dropdown-icon" style="width: 12px; height: 12px;" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+                    </button>
+                    
+                    <div class="user-dropdown-menu" id="userDropdown">
+                        <a href="/dashboard" class="dropdown-item">
+                            <svg class="dropdown-icon" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" /></svg>
+                            My Dashboard
+                        </a>
+                        <a href="/history" class="dropdown-item">
+                            <svg class="dropdown-icon" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+                            History
+                        </a>
+                        <hr class="dropdown-divider">
+                        <a href="{{ url_for('logout') }}" class="dropdown-logout-btn">
+                            <svg class="dropdown-icon" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75" /></svg>
+                            Logout
+                        </a>
+                    </div>
+                </div>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="{{ 'active' if active_page == 'login' else '' }}">Login</a>
+                <a href="{{ url_for('register') }}" class="{{ 'active' if active_page == 'register' else '' }}">Register</a>
+            {% endif %}
+            
             <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">☀️ Light</button>
         </div>
     </nav>
 
     <main class="page-container">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div style="background: rgba(255, 77, 77, 0.2); border: 1px solid #ff4d4d; color: #ff4d4d; padding: 10px 20px; border-radius: 10px; margin-bottom: 20px; text-align: center; max-width: 450px; width: 100%;">
+                    {% for message in messages %}
+                        <p style="margin: 0;">{{ message }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
         {% block content %}{% endblock %}
     </main>
 
@@ -107,6 +256,24 @@
                 themeBtn.innerText = '🌙 Dark';
             }
         }
+
+        // Toggle user dropdown menu
+        function toggleDropdown(event) {
+            event.stopPropagation();
+            const dropdown = document.getElementById('userDropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        // Close the dropdown if clicking outside
+        window.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('userDropdown');
+            const container = document.querySelector('.user-dropdown-container');
+            if (dropdown && dropdown.classList.contains('show')) {
+                if (!container.contains(event.target)) {
+                    dropdown.classList.remove('show');
+                }
+            }
+        });
     </script>
 </body>
 </html>
