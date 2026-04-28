@@ -224,3 +224,8 @@ uploads/
 
 capstone project ppt.pptx
 .pptx
+
+# Database files
+*.db
+*.sqlite3
+instance/
