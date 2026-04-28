@@ -60,7 +60,10 @@ def extract_text_from_ppt(file_path):
         slide_text = ""
         for shape in slide.shapes:
             if hasattr(shape, "text") and shape.text:
-                slide_text += shape.text + " "
+                text_chunk = shape.text.strip()
+                # Ignore very short text chunks (titles, names, dates)
+                if len(text_chunk.split()) >= 5:
+                    slide_text += text_chunk + " "
         content = slide_text.strip()
         if content:
             slide_data.append({'slide': i + 1, 'text': content})
@@ -145,9 +148,8 @@ def convert_ppt_to_pdf(input_path, output_path):
 
 
 # ==========================================
-# 🌐 FRONTEND PAGE ROUTES (Multi-Page App)
+# 🌐 FRONTEND PAGE ROUTES
 # ==========================================
-
 @app.route("/")
 @app.route("/detector")
 def home(): 
@@ -177,8 +179,6 @@ def contact():
 # ==========================================
 # ⚙️ API & PROCESSING ROUTES
 # ==========================================
-
-# --- CONVERSION API ---
 @app.route("/api/convert", methods=["POST"])
 def api_convert():
     file = request.files.get("file")
@@ -195,16 +195,7 @@ def api_convert():
             text, _ = extract_text_from_ppt(path)
             prob = get_ensemble_score(text)
             b64 = base64.b64encode(text.encode("utf-8")).decode("utf-8")
-            return jsonify({
-                "status": "success", 
-                "ai_probability": round(prob * 100, 2), 
-                "human_probability": round((1-prob)*100,2), 
-                "file_b64": b64, 
-                "mime_type": "text/plain", 
-                "extension": ".txt", 
-                "scan_complete": True
-            })
-            
+            return jsonify({"status": "success", "ai_probability": round(prob * 100, 2), "human_probability": round((1-prob)*100,2), "file_b64": b64, "mime_type": "text/plain", "extension": ".txt", "scan_complete": True})
         elif conversion_type == "text-ppt":
             with open(path, 'r', encoding='utf-8', errors='ignore') as f:
                 lines = [line.strip() for line in f.readlines() if line.strip()]
@@ -221,28 +212,14 @@ def api_convert():
             with open(out, "rb") as f: b64 = base64.b64encode(f.read()).decode("utf-8")
             try: os.remove(out)
             except Exception: pass
-            return jsonify({
-                "status": "success", 
-                "file_b64": b64, 
-                "mime_type": "application/vnd.openxmlformats-officedocument.presentationml.presentation", 
-                "extension": ".pptx", 
-                "scan_complete": False
-            })
-            
+            return jsonify({"status": "success", "file_b64": b64, "mime_type": "application/vnd.openxmlformats-officedocument.presentationml.presentation", "extension": ".pptx", "scan_complete": False})
         elif conversion_type == "ppt-pdf":
             out = os.path.join(app.config["UPLOAD_FOLDER"], "conv.pdf")
             convert_ppt_to_pdf(path, out)
             with open(out, "rb") as f: b64 = base64.b64encode(f.read()).decode("utf-8")
             try: os.remove(out)
             except Exception: pass
-            return jsonify({
-                "status": "success", 
-                "file_b64": b64, 
-                "mime_type": "application/pdf", 
-                "extension": ".pdf", 
-                "scan_complete": False
-            })
-            
+            return jsonify({"status": "success", "file_b64": b64, "mime_type": "application/pdf", "extension": ".pdf", "scan_complete": False})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
@@ -250,7 +227,6 @@ def api_convert():
             if os.path.exists(path): os.remove(path)
         except Exception: pass 
 
-# --- CHAT API ---
 @app.route("/api/chat", methods=["POST"])
 def api_chat():
     data = request.json
@@ -272,7 +248,6 @@ def api_chat():
     except Exception as e:
         return jsonify({"error": f"Chat engine error: {str(e)}"}), 500
 
-# --- PPT PREDICTION ROUTE ---
 @app.route("/predict_ppt", methods=["POST"])
 def predict_ppt():
     file = request.files.get("file")
@@ -294,7 +269,7 @@ def predict_ppt():
         doc_summary = generate_summary(text)
         
         return render_template("result.html", 
-                               active_page="detector", # Keeps the navbar highlighted correctly
+                               active_page="detector",
                                result="AI Detected" if final_prob > 0.5 else "Human Authored", 
                                probability=round(final_prob*100,2), 
                                highlighted_text=highlight_ai_sentences(text), 
