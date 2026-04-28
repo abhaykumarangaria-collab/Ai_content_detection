@@ -13,7 +13,10 @@ from nltk.corpus import stopwords
 from nltk.tokenize import sent_tokenize, word_tokenize
 
 # --- IMPORT YOUR NEW AI MODULE ---
-from rag_engine import SlideRAGEngine
+try:
+    from rag_engine import SlideRAGEngine
+except ImportError:
+    print("⚠️ Warning: rag_engine.py not found. Chat features may not work.")
 
 # Check for comtypes (Windows only, for PDF conversion)
 try:
@@ -65,12 +68,15 @@ def extract_text_from_ppt(file_path):
     return full_text.strip(), slide_data
 
 def get_ensemble_score(text):
-    clean = preprocess(text)
-    vec = vectorizer.transform([clean])
-    if vec.nnz == 0: return 0.0
-    prob_xgb = float(model_xgb.predict(xgb.DMatrix(vec))[0])
-    prob_sgd = float(model_sgd.predict_proba(vec)[0][1])
-    return (prob_xgb * 0.6) + (prob_sgd * 0.4)
+    try:
+        clean = preprocess(text)
+        vec = vectorizer.transform([clean])
+        if vec.nnz == 0: return 0.0
+        prob_xgb = float(model_xgb.predict(xgb.DMatrix(vec))[0])
+        prob_sgd = float(model_sgd.predict_proba(vec)[0][1])
+        return (prob_xgb * 0.6) + (prob_sgd * 0.4)
+    except:
+        return 0.5 # Fallback if models aren't loaded
 
 def analyze_tone(text):
     text_lower = str(text).lower()
@@ -138,11 +144,41 @@ def convert_ppt_to_pdf(input_path, output_path):
         pythoncom.CoUninitialize()
 
 
-# --- FLASK ROUTES ---
-@app.route("/")
-def home(): 
-    return render_template("index.html")
+# ==========================================
+# 🌐 FRONTEND PAGE ROUTES (Multi-Page App)
+# ==========================================
 
+@app.route("/")
+@app.route("/detector")
+def home(): 
+    return render_template("detector.html", active_page="detector")
+
+@app.route("/converter")
+def converter(): 
+    return render_template("converter.html", active_page="converter")
+
+@app.route("/dashboard")
+def dashboard(): 
+    return render_template("dashboard.html", active_page="dashboard")
+
+@app.route("/history")
+def history(): 
+    return render_template("history.html", active_page="history")
+
+@app.route("/about")
+def about(): 
+    return render_template("about.html", active_page="about")
+
+@app.route("/contact")
+def contact(): 
+    return render_template("contact.html", active_page="contact")
+
+
+# ==========================================
+# ⚙️ API & PROCESSING ROUTES
+# ==========================================
+
+# --- CONVERSION API ---
 @app.route("/api/convert", methods=["POST"])
 def api_convert():
     file = request.files.get("file")
@@ -214,6 +250,7 @@ def api_convert():
             if os.path.exists(path): os.remove(path)
         except Exception: pass 
 
+# --- CHAT API ---
 @app.route("/api/chat", methods=["POST"])
 def api_chat():
     data = request.json
@@ -223,20 +260,19 @@ def api_chat():
     if not question or not slides:
         return jsonify({"error": "Missing question or slide data."}), 400
 
-    # --- RAG ENGINE INTEGRATION ---
-    rag = SlideRAGEngine()
-    success = rag.ingest_slides(slides)
-    
-    if not success:
-         return jsonify({"error": "Failed to process the slide data."}), 500
-         
-    result = rag.generate_answer(question)
-    
-    if "error" in result:
-        return jsonify({"error": result["error"]}), 500
-        
-    return jsonify({"answer": result["answer"]})
+    try:
+        rag = SlideRAGEngine()
+        success = rag.ingest_slides(slides)
+        if not success:
+             return jsonify({"error": "Failed to process the slide data."}), 500
+        result = rag.generate_answer(question)
+        if "error" in result:
+            return jsonify({"error": result["error"]}), 500
+        return jsonify({"answer": result["answer"]})
+    except Exception as e:
+        return jsonify({"error": f"Chat engine error: {str(e)}"}), 500
 
+# --- PPT PREDICTION ROUTE ---
 @app.route("/predict_ppt", methods=["POST"])
 def predict_ppt():
     file = request.files.get("file")
@@ -258,6 +294,7 @@ def predict_ppt():
         doc_summary = generate_summary(text)
         
         return render_template("result.html", 
+                               active_page="detector", # Keeps the navbar highlighted correctly
                                result="AI Detected" if final_prob > 0.5 else "Human Authored", 
                                probability=round(final_prob*100,2), 
                                highlighted_text=highlight_ai_sentences(text), 

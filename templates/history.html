@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block head %}
+<style>
+    .history-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    .history-table th, .history-table td { padding: 15px; text-align: left; border-bottom: 1px solid var(--border-color); }
+    .history-table th { color: #00ffcc; font-weight: bold; font-size: 14px; text-transform: uppercase;}
+    .history-table tr:hover { background: rgba(255,255,255,0.02); }
+    .status-badge { padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+    .status-ai { background: rgba(255, 77, 77, 0.1); color: #ff4d4d; border: 1px solid rgba(255, 77, 77, 0.3); }
+    .status-human { background: rgba(0, 255, 204, 0.1); color: #00ffcc; border: 1px solid rgba(0, 255, 204, 0.3); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card card-wide">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1 style="color: #00ffcc; margin: 0;">Scan History</h1>
+        <button class="btn" style="padding: 8px 20px; font-size: 14px;" onclick="alert('Feature coming soon: Export to CSV')">📥 Export CSV</button>
+    </div>
+    
+    <table class="history-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>File Name</th>
+                <th>AI Score</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Today, 10:45 AM</td>
+                <td>Q3_Marketing_Strategy.pptx</td>
+                <td>88%</td>
+                <td><span class="status-badge status-ai">AI Detected</span></td>
+                <td><a href="#" style="color: #00ffcc; text-decoration: none;">View Report</a></td>
+            </tr>
+            <tr>
+                <td>Yesterday, 2:15 PM</td>
+                <td>Project_Alpha_Pitch.pptx</td>
+                <td>12%</td>
+                <td><span class="status-badge status-human">Human Authored</span></td>
+                <td><a href="#" style="color: #00ffcc; text-decoration: none;">View Report</a></td>
+            </tr>
+            <tr>
+                <td>Oct 24, 9:00 AM</td>
+                <td>Financial_Review_2026.pptx</td>
+                <td>45%</td>
+                <td><span class="status-badge" style="background: rgba(255, 204, 0, 0.1); color: #ffcc00; border: 1px solid rgba(255, 204, 0, 0.3);">Mixed Content</span></td>
+                <td><a href="#" style="color: #00ffcc; text-decoration: none;">View Report</a></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+{% endblock %}

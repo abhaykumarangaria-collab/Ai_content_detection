@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI PPT Platform</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Theme Variables */
+        :root {
+            --bg-color: #0f172a;
+            --text-color: white;
+            --card-bg: rgba(255,255,255,0.05);
+            --nav-bg: rgba(255,255,255,0.05);
+            --border-color: rgba(255,255,255,0.1);
+        }
+        [data-theme="light"] {
+            --bg-color: #f1f5f9;
+            --text-color: #0f172a;
+            --card-bg: white;
+            --nav-bg: white;
+            --border-color: rgba(0,0,0,0.1);
+        }
+
+        /* Base Global Styles */
+        body { 
+            margin: 0; font-family: 'Segoe UI', sans-serif; 
+            color: var(--text-color); background: var(--bg-color); 
+            overflow-x: hidden; overflow-y: scroll; min-height: 100vh; display: flex; flex-direction: column; 
+            transition: background 0.3s, color 0.3s;
+        }
+        body::before { content: ""; position: fixed; width: 100%; height: 100%; background-image: linear-gradient(var(--border-color) 1px, transparent 1px), linear-gradient(90deg, var(--border-color) 1px, transparent 1px); background-size: 40px 40px; z-index: -1; }
+        
+        .particles span { position: absolute; width: 4px; height: 4px; background: #00ffcc; border-radius: 50%; animation: float 10s linear infinite; }
+        @keyframes float { from { transform: translateY(100vh); opacity: 0; } to { transform: translateY(-10vh); opacity: 1; } }
+        
+        /* Navbar */
+        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 50px; background: var(--nav-bg); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 1000; transition: 0.3s; }
+        .nav-brand { text-decoration: none; color: var(--text-color); display: flex; align-items: center; gap: 10px; font-size: 22px; font-weight: bold; }
+        .nav-links { display: flex; gap: 25px; align-items: center; }
+        .nav-links a { text-decoration: none; color: #94a3b8; position: relative; cursor: pointer; transition: 0.3s; padding-bottom: 5px; font-weight: 500;}
+        .nav-links a:hover { color: #00ffcc; }
+        .nav-links a::after { content: ""; position: absolute; width: 0%; height: 2px; bottom: 0; left: 0; background: #00ffcc; transition: 0.3s; }
+        .nav-links a:hover::after, .nav-links a.active::after { width: 100%; }
+        .nav-links a.active { color: var(--text-color); }
+        
+        /* Theme Toggle Button */
+        .theme-toggle { background: none; border: 1px solid var(--border-color); color: var(--text-color); padding: 5px 10px; border-radius: 20px; cursor: pointer; transition: 0.3s; display: flex; align-items: center; gap: 5px;}
+        .theme-toggle:hover { background: rgba(0,255,204,0.1); border-color: #00ffcc; }
+
+        /* Main Container & Shared Components */
+        .page-container { flex: 1; padding: 60px 20px; display: flex; flex-direction: column; align-items: center; animation: startup 0.5s ease; }
+        @keyframes startup { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .card { background: var(--card-bg); backdrop-filter: blur(20px); padding: 40px; border-radius: 20px; text-align: center; width: 100%; max-width: 450px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 0 auto; transition: 0.3s;}
+        .card-wide { max-width: 800px; }
+        .upload-box { border: 2px dashed var(--border-color); padding: 30px; margin: 20px 0; border-radius: 15px; cursor: pointer; transition: 0.3s; }
+        .upload-box.dragover { border-color: #00ffcc; background: rgba(0,255,200,0.1); transform: scale(1.02); }
+        input[type="file"] { display: none; }
+        .file-preview { margin-top: 10px; display: none; }
+        .remove-file { background: rgba(255, 50, 50, 0.8); border: none; color: white; padding: 5px 10px; border-radius: 5px; cursor: pointer; margin-top: 10px; }
+        .btn { padding: 12px 30px; border: none; border-radius: 30px; font-weight: bold; cursor: pointer; background: linear-gradient(45deg, #00ffcc, #00ccff); color: #0f172a; transition: 0.3s; display: inline-block; text-decoration: none; text-align: center; }
+        .btn-full { width: 100%; }
+        .btn:hover:not(:disabled) { transform: scale(1.05); box-shadow: 0 0 20px #00ffcc; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    </style>
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <div class="particles">
+        <span style="left:10%; animation-delay:0s;"></span><span style="left:30%; animation-delay:2s;"></span>
+        <span style="left:50%; animation-delay:4s;"></span><span style="left:70%; animation-delay:1s;"></span>
+    </div>
+
+    <nav class="navbar">
+        <a href="/" class="nav-brand">🤖 AI Detector</a>
+        <div class="nav-links">
+            <a href="/" class="{{ 'active' if active_page == 'detector' else '' }}">Detector</a>
+            <a href="/converter" class="{{ 'active' if active_page == 'converter' else '' }}">Converter</a>
+            <a href="/dashboard" class="{{ 'active' if active_page == 'dashboard' else '' }}">Dashboard</a>
+            <a href="/history" class="{{ 'active' if active_page == 'history' else '' }}">History</a>
+            <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">☀️ Light</button>
+        </div>
+    </nav>
+
+    <main class="page-container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <script>
+        // Theme Toggle Logic
+        const body = document.body;
+        const themeBtn = document.getElementById('themeBtn');
+        const savedTheme = localStorage.getItem('theme');
+        
+        if (savedTheme) {
+            body.setAttribute('data-theme', savedTheme);
+            themeBtn.innerText = savedTheme === 'light' ? '🌙 Dark' : '☀️ Light';
+        }
+
+        function toggleTheme() {
+            if (body.getAttribute('data-theme') === 'light') {
+                body.removeAttribute('data-theme');
+                localStorage.setItem('theme', 'dark');
+                themeBtn.innerText = '☀️ Light';
+            } else {
+                body.setAttribute('data-theme', 'light');
+                localStorage.setItem('theme', 'light');
+                themeBtn.innerText = '🌙 Dark';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="margin-bottom: 15px;">
+        <span style="background: rgba(0,255,204,0.1); color: #00ffcc; padding: 5px 12px; border-radius: 20px; font-size: 11px; margin: 0 3px; border: 1px solid rgba(0, 255, 204, 0.3);">🎓 Educators</span>
+        <span style="background: rgba(0,255,204,0.1); color: #00ffcc; padding: 5px 12px; border-radius: 20px; font-size: 11px; margin: 0 3px; border: 1px solid rgba(0, 255, 204, 0.3);">💼 Professionals</span>
+    </div>
+    
+    <h1 style="color: #00ffcc;">Free AI PPT Detector</h1>
+    <p>Upload your presentation and detect AI-generated content instantly</p>
+    
+    <form id="uploadForm" action="/predict_ppt" method="post" enctype="multipart/form-data">
+        <div id="dropArea" class="upload-box">
+            <input type="file" id="fileInput" name="file" accept=".pptx">
+            <div id="uploadText">
+                📂 Drag & Drop PPT here <br><br> or <b>Click to Upload</b>
+                <span style="font-size: 11px; opacity: 0.5; margin-top: 10px; display: block;">Max size: 50MB | Formats: .pptx</span>
+            </div>
+            <div id="filePreview" class="file-preview">
+                <p id="fileName" style="color: #00ffcc; font-weight: bold; word-break: break-all;"></p>
+                <p id="fileSize" style="font-size: 12px; opacity: 0.7;"></p>
+                <button type="button" id="removeFile" class="remove-file">❌ Remove</button>
+            </div>
+        </div>
+        <button type="button" class="btn btn-full" id="scanBtn" disabled>🚀 Scan for AI</button>
+        <div style="font-size: 11px; opacity: 0.6; margin-top: 15px;">🔒 Secure & Private. Files auto-delete after scanning.</div>
+    </form>
+</div>
+
+<script>
+    const dropArea = document.getElementById("dropArea");
+    const fileInput = document.getElementById("fileInput");
+    const filePreview = document.getElementById("filePreview");
+    const fileName = document.getElementById("fileName");
+    const fileSize = document.getElementById("fileSize");
+    const removeBtn = document.getElementById("removeFile");
+    const scanBtn = document.getElementById("scanBtn");
+    const uploadText = document.getElementById("uploadText");
+
+    dropArea.onclick = () => fileInput.click();
+    ["dragenter", "dragover"].forEach(evt => dropArea.addEventListener(evt, e => { e.preventDefault(); dropArea.classList.add("dragover"); }));
+    ["dragleave", "drop"].forEach(evt => dropArea.addEventListener(evt, e => { e.preventDefault(); dropArea.classList.remove("dragover"); }));
+    
+    dropArea.ondrop = e => handleFile(e.dataTransfer.files[0]);
+    fileInput.onchange = () => handleFile(fileInput.files[0]);
+
+    removeBtn.onclick = (e) => {
+        e.stopPropagation(); fileInput.value = ""; filePreview.style.display = "none";
+        uploadText.style.display = "block"; scanBtn.disabled = true;
+    };
+
+    function handleFile(file) {
+        if (!file) return;
+        if (!file.name.endsWith(".pptx")) return alert("Only .pptx files allowed!");
+        
+        const dt = new DataTransfer(); dt.items.add(file); fileInput.files = dt.files;
+        uploadText.style.display = "none"; filePreview.style.display = "block";
+        fileName.innerText = "📄 " + file.name;
+        fileSize.innerText = (file.size / 1024).toFixed(2) + " KB";
+        scanBtn.disabled = false;
+    }
+
+    scanBtn.onclick = () => { scanBtn.innerText = "⏳ Analyzing..."; document.getElementById("uploadForm").submit(); };
+</script>
+{% endblock %}

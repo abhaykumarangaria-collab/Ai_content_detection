@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block head %}
+<style>
+    .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; width: 100%; max-width: 1000px; margin-top: 20px;}
+    .dash-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 15px; padding: 25px; display: flex; flex-direction: column; transition: 0.3s;}
+    .dash-card h3 { font-size: 16px; color: #00ffcc; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
+    .donut-chart { width: 120px; height: 120px; border-radius: 50%; background: conic-gradient(#00ffcc 80%, var(--border-color) 0); display: flex; align-items: center; justify-content: center; margin: 10px auto; position: relative; transition: 0.5s; }
+    .donut-chart::before { content: ""; position: absolute; width: 90px; height: 90px; background: var(--card-bg); border-radius: 50%; transition: 0.3s;}
+    .stat-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed var(--border-color); font-size: 14px; }
+    .stat-row:last-child { border-bottom: none; }
+    .bar-chart { display: flex; align-items: flex-end; justify-content: space-between; height: 120px; margin-top: auto; padding-top: 20px; }
+    .bar { width: 15%; background: linear-gradient(to top, rgba(0,204,255,0.2), #00ccff); border-radius: 5px 5px 0 0; position: relative; transition: height 0.5s ease; }
+    .bar::after { content: attr(data-val); position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 12px; opacity: 0.8; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="width: 100%; max-width: 1000px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div style="text-align: left;">
+        <h2 style="margin: 0; color: #00ffcc;">Performance Dashboard</h2>
+        <p style="margin: 5px 0 0 0;">Analyze AI detection statistics and presentation metrics.</p>
+    </div>
+    <button class="btn" onclick="clearDashboardData()" style="background: rgba(255, 50, 50, 0.1); color: #ff4d4d; border: 1px solid rgba(255, 50, 50, 0.3); padding: 10px 20px;">🗑️ Clear Data</button>
+</div>
+
+<div class="dashboard-grid">
+    <div class="dash-card">
+        <h3>Overall AI Risk Score</h3>
+        <div class="donut-chart" id="dashDonut"><span id="dashScore" style="position: relative; font-size: 24px; font-weight: bold; z-index: 1;">80%</span></div>
+        <p style="text-align: center; font-size: 14px; margin-top: 15px;">High probability of AI-generated content detected across recent scans.</p>
+    </div>
+    <div class="dash-card">
+        <h3>Recent Scan Metrics</h3>
+        <div class="stat-row"><span style="opacity: 0.8;">Total Scanned</span><span id="stat1" style="font-weight: bold; color: #00ccff;">142</span></div>
+        <div class="stat-row"><span style="opacity: 0.8;">AI Flags</span><span id="stat2" style="font-weight: bold; color: #00ccff;">84</span></div>
+        <div class="stat-row"><span style="opacity: 0.8;">Human Avg</span><span id="stat3" style="font-weight: bold; color: #00ccff;">62%</span></div>
+        <div class="stat-row"><span style="opacity: 0.8;">Process Time</span><span id="stat4" style="font-weight: bold; color: #00ccff;">1.2s</span></div>
+    </div>
+    <div class="dash-card">
+        <h3>Detections by Month</h3>
+        <div class="bar-chart">
+            <div class="bar dash-bar" style="height: 40%;" data-val="Jan"></div>
+            <div class="bar dash-bar" style="height: 65%;" data-val="Feb"></div>
+            <div class="bar dash-bar" style="height: 85%;" data-val="Mar"></div>
+            <div class="bar dash-bar" style="height: 50%;" data-val="Apr"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function clearDashboardData() {
+        if(confirm("Are you sure you want to clear your analytics data?")) {
+            document.getElementById('dashDonut').style.background = "var(--border-color)";
+            document.getElementById('dashScore').innerText = "0%";
+            document.getElementById('stat1').innerText = "0";
+            document.getElementById('stat2').innerText = "0";
+            document.getElementById('stat3').innerText = "0%";
+            document.getElementById('stat4').innerText = "0.0s";
+            document.querySelectorAll('.dash-bar').forEach(bar => bar.style.height = '0%');
+            alert("Dashboard data cleared successfully.");
+        }
+    }
+</script>
+{% endblock %}
