@@ -1,3 +1,5 @@
+import os
+from dotenv import load_dotenv
 from flask import Flask, request, render_template, jsonify, flash, redirect, url_for
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -8,12 +10,15 @@ import joblib
 import re
 import nltk
 import xgboost as xgb
-import os
 import base64
 import pythoncom
 import heapq
 from nltk.corpus import stopwords
 from nltk.tokenize import sent_tokenize, word_tokenize
+
+# --- LOAD ENVIRONMENT VARIABLES FIRST ---
+# This looks for your .env file and loads the passwords securely
+load_dotenv()
 
 # --- IMPORT YOUR NEW AI MODULE ---
 try:
@@ -30,8 +35,18 @@ except ImportError:
 
 # --- APP CONFIGURATION ---
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'super-secret-key-change-in-production'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+
+# Securely load the Secret Key from .env
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'default-fallback-key-if-env-fails')
+
+# Securely load the Database URL from .env
+db_url = os.environ.get('DATABASE_URL', 'sqlite:///users.db')
+
+# SQLAlchemy requires 'postgresql://' instead of 'postgres://' for cloud databases
+if db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 UPLOAD_FOLDER = "uploads"
@@ -53,7 +68,7 @@ class User(db.Model, UserMixin):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# Initialize Database
+# Initialize Database (This will create the table in Supabase automatically!)
 with app.app_context():
     db.create_all()
 
