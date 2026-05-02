@@ -334,7 +334,6 @@ def api_chat():
         return jsonify({"error": f"Chat engine error: {str(e)}"}), 500
 
 @app.route("/predict_ppt", methods=["POST"])
-@login_required
 def predict_ppt():
     file = request.files.get("file")
     if not file: return "No file"
