@@ -451,5 +451,8 @@ def predict_ppt():
             if os.path.exists(path): os.remove(path)
         except Exception: pass 
 
-if __name__ == "__main__": 
-    app.run(debug=True)
+if __name__ == '__main__':
+    # Get the PORT from the environment variables, default to 5000 if not found
+    port = int(os.environ.get("PORT", 5000))
+    # Bind to 0.0.0.0 so Render can route outside traffic to it
+    app.run(host='0.0.0.0', port=port)
