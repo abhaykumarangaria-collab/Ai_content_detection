@@ -1,4 +1,5 @@
 import os
+import requests
 from dotenv import load_dotenv
 from flask import Flask, request, render_template, jsonify, flash, redirect, url_for
 from werkzeug.utils import secure_filename
@@ -6,6 +7,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from pptx import Presentation
+from pptx.enum.shapes import MSO_SHAPE_TYPE
+from pptx.util import Pt
 import joblib
 import re
 import nltk
@@ -17,7 +20,6 @@ from nltk.corpus import stopwords
 from nltk.tokenize import sent_tokenize, word_tokenize
 
 # --- LOAD ENVIRONMENT VARIABLES FIRST ---
-# This looks for your .env file and loads the passwords securely
 load_dotenv()
 
 # --- IMPORT YOUR NEW AI MODULE ---
@@ -36,13 +38,9 @@ except ImportError:
 # --- APP CONFIGURATION ---
 app = Flask(__name__)
 
-# Securely load the Secret Key from .env
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'default-fallback-key-if-env-fails')
 
-# Securely load the Database URL from .env
 db_url = os.environ.get('DATABASE_URL', 'sqlite:///users.db')
-
-# SQLAlchemy requires 'postgresql://' instead of 'postgres://' for cloud databases
 if db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
 
@@ -68,7 +66,6 @@ class User(db.Model, UserMixin):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# Initialize Database (This will create the table in Supabase automatically!)
 with app.app_context():
     db.create_all()
 
@@ -185,6 +182,86 @@ def convert_ppt_to_pdf(input_path, output_path):
         powerpoint.Quit()
     finally:
         pythoncom.CoUninitialize()
+
+# --- NEW HELPERS ---
+def analyze_slide_structure(file_path):
+    prs = Presentation(file_path)
+    visual_feedback = []
+    
+    for i, slide in enumerate(prs.slides):
+        word_count = 0
+        has_image = False
+        tiny_text_warnings = 0
+        
+        for shape in slide.shapes:
+            if shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
+                has_image = True
+                
+            if hasattr(shape, "text") and shape.text:
+                words = shape.text.split()
+                word_count += len(words)
+                
+                if shape.has_text_frame:
+                    for paragraph in shape.text_frame.paragraphs:
+                        for run in paragraph.runs:
+                            if run.font and run.font.size:
+                                font_size = run.font.size.pt
+                                if font_size < 18:
+                                    tiny_text_warnings += 1
+
+        feedback = []
+        if word_count > 40:
+            feedback.append("⚠️ Too much text. Consider using bullet points and talking tracks.")
+        if word_count > 10 and not has_image:
+            feedback.append("🖼️ Text-heavy without visuals. Consider adding an image/diagram.")
+        if tiny_text_warnings > 0:
+            feedback.append(f"👓 Found {tiny_text_warnings} text elements smaller than 18pt. Might be hard to read.")
+            
+        if not feedback:
+            feedback.append("✅ Good structure and readability.")
+
+        visual_feedback.append({
+            "slide": i + 1,
+            "word_count": word_count,
+            "has_image": has_image,
+            "feedback": feedback
+        })
+        
+    return visual_feedback
+
+def check_plagiarism(text_summary_list):
+    """Mock API call for checking plagiarism on summary sentences."""
+    plagiarism_results = []
+    
+    for sentence in text_summary_list:
+        if len(sentence.split()) > 5:
+            try:
+                # Simulating a hit for demonstration purposes
+                if "research" in sentence.lower() or "proven" in sentence.lower():
+                    plagiarism_results.append({
+                        "sentence": sentence,
+                        "flagged": True,
+                        "possible_source": "Similarity found in online academic databases."
+                    })
+                else:
+                    plagiarism_results.append({
+                        "sentence": sentence,
+                        "flagged": False,
+                        "possible_source": "Original"
+                    })
+            except Exception as e:
+                print(f"Plagiarism API error: {e}")
+                
+    flagged_count = sum(1 for item in plagiarism_results if item['flagged'])
+    total_checked = len(plagiarism_results)
+    
+    originality_score = 100 if total_checked == 0 else int(((total_checked - flagged_count) / total_checked) * 100)
+
+    return {
+        "score": originality_score,
+        "details": plagiarism_results
+    }
+
 
 # ==========================================
 # 🔐 AUTHENTICATION ROUTES
@@ -342,6 +419,7 @@ def predict_ppt():
     file.save(path)
     
     try:
+        # Standard Processing
         text, slide_data = extract_text_from_ppt(path)
         final_prob = get_ensemble_score(text)
         
@@ -353,6 +431,10 @@ def predict_ppt():
         doc_tone = analyze_tone(text)
         doc_summary = generate_summary(text)
         
+        # New Processing
+        visual_analysis = analyze_slide_structure(path)
+        plagiarism_report = check_plagiarism(doc_summary)
+        
         return render_template("result.html", 
                                active_page="detector",
                                result="AI Detected" if final_prob > 0.5 else "Human Authored", 
@@ -361,7 +443,9 @@ def predict_ppt():
                                slide_scores=slide_scores,
                                tone=doc_tone,
                                summary=doc_summary,
-                               raw_slides=slide_data)
+                               raw_slides=slide_data,
+                               visual_analysis=visual_analysis,
+                               plagiarism_report=plagiarism_report)
     finally:
         try:
             if os.path.exists(path): os.remove(path)

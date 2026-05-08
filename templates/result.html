@@ -37,7 +37,7 @@
 
     <div class="metrics">
         <div class="metric"><label>AI Score</label><div class="bar-bg"><div class="bar-fill" id="aiBar"></div></div></div>
-        <div class="metric"><label>Originality</label><div class="bar-bg"><div class="bar-fill" id="origBar"></div></div></div>
+        <div class="metric"><label>Human Originality</label><div class="bar-bg"><div class="bar-fill" id="origBar"></div></div></div>
     </div>
 
     <div class="explanation" id="explanation"></div>
@@ -57,20 +57,65 @@
         </div>
     </div>
 
+    <!-- 🌟 PLAGIARISM REPORT SECTION -->
+    {% if plagiarism_report %}
+    <div style="margin-top: 20px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); padding: 20px; border-radius: 15px;">
+        <h3 style="color: white; font-size: 14px; margin-bottom: 10px; margin-top: 0; text-transform: uppercase;">🔍 Web Plagiarism Check</h3>
+        {% set plag_color = '#00ffcc' if plagiarism_report.score > 80 else '#ffcc00' %}
+        <p style="font-size: 13px; opacity: 0.8; margin-bottom: 15px;">Estimated Web Originality Score: <strong style="color: {{ plag_color }};">{{ plagiarism_report.score }}%</strong></p>
+        <ul style="margin: 0; padding-left: 20px; font-size: 13px; opacity: 0.9;">
+            {% for item in plagiarism_report.details %}
+                <li style="margin-bottom: 10px;">
+                    <em>"{{ item.sentence }}"</em><br>
+                    {% if item.flagged %}
+                        <span style="color: #ff4d4d; font-size: 12px;">⚠️ {{ item.possible_source }}</span>
+                    {% else %}
+                        <span style="color: #00ffcc; font-size: 12px;">✅ {{ item.possible_source }}</span>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <!-- UPDATED: CHART.JS SLIDE BREAKDOWN -->
     {% if slide_scores %}
-    <div style="margin-top: 30px;">
-        <h3 style="font-size: 16px; color: #00ffcc;">📊 Slide Breakdown</h3>
-        {% for s in slide_scores %}
-        <div class="slide-item">
-            <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px;"><span>Slide {{ s.slide }}</span><span>{{ s.score }}% AI</span></div>
-            <div class="bar-bg"><div class="bar-fill" style="--w: {{ s.score }}%; width: var(--w); background: #ff4d4d; transition: none;"></div></div>
+    <div style="margin-top: 30px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); border-radius: 15px; padding: 20px;">
+        <h3 style="font-size: 16px; color: #00ffcc; margin-top: 0; margin-bottom: 20px;">📊 AI vs Human Slide Breakdown</h3>
+        <!-- Chart Container -->
+        <div style="position: relative; height: 350px; width: 100%;">
+            <canvas id="slideBarChart"></canvas>
         </div>
-        {% endfor %}
+    </div>
+    <!-- Inject the data securely for JavaScript -->
+    <script id="slide-scores-data" type="application/json">{{ slide_scores | tojson | safe }}</script>
+    {% endif %}
+
+    <!-- 🌟 VISUAL FEEDBACK SECTION -->
+    {% if visual_analysis %}
+    <div style="margin-top: 30px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); border-radius: 15px; padding: 20px;">
+        <h3 style="color: #00ffcc; font-size: 16px; margin-top: 0;">🎨 Slide Design & Structure Coach</h3>
+        <div style="max-height: 250px; overflow-y: auto; padding-right: 10px;">
+            {% for slide in visual_analysis %}
+            {% set border_color = '#00ffcc' if '✅' in slide.feedback[0] else '#ffcc00' %}
+            <div style="margin-bottom: 12px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px; border-left: 3px solid {{ border_color }};">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <strong style="color: white; font-size: 14px;">Slide {{ slide.slide }}</strong>
+                    <span style="font-size: 12px; opacity: 0.6;">{{ slide.word_count }} words | {% if slide.has_image %}🖼️ Image{% else %}🚫 No Image{% endif %}</span>
+                </div>
+                <ul style="margin: 0; padding-left: 20px; font-size: 13px; opacity: 0.8;">
+                    {% for feedback_item in slide.feedback %}
+                        <li>{{ feedback_item }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endfor %}
+        </div>
     </div>
     {% endif %}
 
     <div class="content-box">
-        <h3>🧾 Sentence Analysis</h3><div>{{ highlighted_text|safe }}</div>
+        <h3 style="margin-top: 0;">🧾 Sentence Analysis</h3><div>{{ highlighted_text|safe }}</div>
         <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin: 15px 0;">
         <p style="font-size:12px; opacity:0.7;"><span style="color:#ff4d4d">🔴</span> AI-like &nbsp;&nbsp; <span style="color:#00ffcc">🟢</span> Human-like &nbsp;&nbsp; <span style="color:#94a3b8">⚪</span> Neutral</p>
     </div>
@@ -106,13 +151,67 @@
             document.getElementById("loader").style.display = "none";
             document.getElementById("mainContent").style.display = "block";
             
-            // Render Chart
+            // Render Pie Chart
             new Chart(document.getElementById('pieChart').getContext('2d'), {
                 type: 'doughnut', data: { labels: ['AI Content', 'Human Content'], datasets: [{ data: [aiScore, humanScore], backgroundColor: ['#ff4d4d', '#00ffcc'], borderWidth: 0 }] },
                 options: { cutout: '75%', plugins: { legend: { position: 'bottom', labels: { color: 'white' } } } }
             });
 
-            // Animate Bars
+            // Render Slide Breakdown Bar Chart
+            const slideScoresEl = document.getElementById("slide-scores-data");
+            if (slideScoresEl) {
+                const slideScoresData = JSON.parse(slideScoresEl.textContent || "[]");
+                
+                // Prepare Data
+                const labels = slideScoresData.map(s => 'Slide ' + s.slide);
+                const aiData = slideScoresData.map(s => s.score);
+                const humanData = slideScoresData.map(s => (100 - s.score).toFixed(1));
+
+                new Chart(document.getElementById('slideBarChart').getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'AI %',
+                                data: aiData,
+                                backgroundColor: '#ff4d4d',
+                                borderRadius: 4
+                            },
+                            {
+                                label: 'Human %',
+                                data: humanData,
+                                backgroundColor: '#00ffcc',
+                                borderRadius: 4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                grid: { color: 'rgba(255,255,255,0.1)' },
+                                ticks: { color: 'rgba(255,255,255,0.7)' }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { color: 'rgba(255,255,255,0.7)' }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: { color: 'white' }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Animate Top Bars
             setTimeout(() => {
                 document.getElementById("aiBar").style.width = aiScore + "%"; document.getElementById("aiBar").style.background = "#ff4d4d";
                 document.getElementById("origBar").style.width = humanScore + "%"; document.getElementById("origBar").style.background = "#00ffcc";
