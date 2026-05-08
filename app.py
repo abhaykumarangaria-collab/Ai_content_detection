@@ -14,7 +14,6 @@ import re
 import nltk
 import xgboost as xgb
 import base64
-import pythoncom
 import heapq
 from nltk.corpus import stopwords
 from nltk.tokenize import sent_tokenize, word_tokenize
@@ -28,12 +27,15 @@ try:
 except ImportError:
     print("⚠️ Warning: rag_engine.py not found. Chat features may not work.")
 
-# Check for comtypes (Windows only, for PDF conversion)
+# Check for Windows-only libraries (for PDF conversion)
 try:
+    import pythoncom
     import comtypes.client
     COMTYPES_AVAILABLE = True
 except ImportError:
     COMTYPES_AVAILABLE = False
+    print("⚠️ Warning: pythoncom/comtypes not found. Windows-specific PDF conversion is disabled.")
+
 
 # --- APP CONFIGURATION ---
 app = Flask(__name__)
@@ -183,7 +185,6 @@ def convert_ppt_to_pdf(input_path, output_path):
     finally:
         pythoncom.CoUninitialize()
 
-# --- NEW HELPERS ---
 def analyze_slide_structure(file_path):
     prs = Presentation(file_path)
     visual_feedback = []
@@ -307,6 +308,7 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
+
 # ==========================================
 # 🌐 FRONTEND PAGE ROUTES
 # ==========================================
@@ -358,6 +360,7 @@ def api_convert():
             prob = get_ensemble_score(text)
             b64 = base64.b64encode(text.encode("utf-8")).decode("utf-8")
             return jsonify({"status": "success", "ai_probability": round(prob * 100, 2), "human_probability": round((1-prob)*100,2), "file_b64": b64, "mime_type": "text/plain", "extension": ".txt", "scan_complete": True})
+        
         elif conversion_type == "text-ppt":
             with open(path, 'r', encoding='utf-8', errors='ignore') as f:
                 lines = [line.strip() for line in f.readlines() if line.strip()]
@@ -375,6 +378,7 @@ def api_convert():
             try: os.remove(out)
             except Exception: pass
             return jsonify({"status": "success", "file_b64": b64, "mime_type": "application/vnd.openxmlformats-officedocument.presentationml.presentation", "extension": ".pptx", "scan_complete": False})
+        
         elif conversion_type == "ppt-pdf":
             out = os.path.join(app.config["UPLOAD_FOLDER"], "conv.pdf")
             convert_ppt_to_pdf(path, out)
@@ -382,6 +386,7 @@ def api_convert():
             try: os.remove(out)
             except Exception: pass
             return jsonify({"status": "success", "file_b64": b64, "mime_type": "application/pdf", "extension": ".pdf", "scan_complete": False})
+            
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
