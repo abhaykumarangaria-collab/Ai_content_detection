@@ -1,5 +1,6 @@
 import os
 import requests
+import traceback  # <--- Added this import
 from dotenv import load_dotenv
 from flask import Flask, request, render_template, jsonify, flash, redirect, url_for
 from werkzeug.utils import secure_filename
@@ -413,7 +414,10 @@ def api_chat():
             return jsonify({"error": result["error"]}), 500
         return jsonify({"answer": result["answer"]})
     except Exception as e:
-        return jsonify({"error": f"Chat engine error: {str(e)}"}), 500
+        # <--- Added exception handling and print statements here --->
+        print("==== CHAT ROUTE CRASHED ====")
+        print(traceback.format_exc())
+        return jsonify({"error": "Something broke, check Render logs"}), 500
 
 @app.route("/predict_ppt", methods=["POST"])
 def predict_ppt():
